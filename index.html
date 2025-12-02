@@ -24,6 +24,8 @@
             --delete-btn: #e74c3c;
             --delete-hover: #c0392b;
             --result-box-bg: #ecf0f1;
+            --goal-box-bg: #e8f6f3;
+            --goal-border: #1abc9c;
             --shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
 
@@ -45,6 +47,8 @@
             --delete-btn: #cf6679;
             --delete-hover: #b00020;
             --result-box-bg: #2d2d2d;
+            --goal-box-bg: #1a3a34; /* Darker teal for dark mode */
+            --goal-border: #16a085;
             --shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
 
@@ -79,7 +83,7 @@
         }
 
         h2 { margin: 0; color: var(--heading-color); }
-        .report-date { display: none; } /* Hidden on screen */
+        .report-date { display: none; }
 
         .theme-toggle {
             background: none;
@@ -116,7 +120,7 @@
         }
 
         /* --- INPUTS --- */
-        input[type="text"], input[type="number"] {
+        input[type="text"], input[type="number"], select {
             padding: 8px;
             border: 1px solid var(--input-border);
             background-color: var(--input-bg);
@@ -141,7 +145,7 @@
         .controls {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
             margin-top: 20px;
         }
 
@@ -187,105 +191,83 @@
         .final-grade { font-size: 24px; font-weight: bold; color: var(--heading-color); }
         .total-weight-warning { color: #e67e22; font-weight: bold; }
 
+        /* --- GOAL CALCULATOR SECTION --- */
+        .goal-section {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: var(--goal-box-bg);
+            border-left: 5px solid var(--goal-border);
+            border-radius: 4px;
+        }
+        
+        .goal-section h3 {
+            margin-top: 0;
+            color: var(--text-main);
+            font-size: 18px;
+        }
+
+        .goal-controls {
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .goal-input-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .goal-input-group label {
+            font-size: 12px;
+            margin-bottom: 5px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        button.calc-goal-btn {
+            background-color: var(--goal-border);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            height: 35px;
+        }
+        button.calc-goal-btn:hover { opacity: 0.9; }
+
+        .goal-result {
+            margin-top: 15px;
+            font-weight: bold;
+            color: var(--text-main);
+            font-size: 16px;
+        }
+
         /* --- PRINT / PDF EXPORT STYLES --- */
         @media print {
-            /* Hide UI elements not needed in report */
-            .buttons-left, .delete-btn, .theme-toggle, th:last-child, td:last-child {
+            .buttons-left, .delete-btn, .theme-toggle, th:last-child, td:last-child, .goal-section {
                 display: none !important;
             }
 
-            /* General Page Setup */
-            body {
-                background-color: white !important;
-                color: black !important;
-                padding: 0 !important;
-            }
-            .container {
-                box-shadow: none !important;
-                max-width: 100% !important;
-                padding: 20px !important;
-                border: none !important;
-            }
-
-            /* Header & Date */
-            .header-row {
-                border-bottom: 2px solid #333 !important;
-                margin-bottom: 30px !important;
-                display: block !important;
-            }
-            h2 {
-                color: black !important;
-                font-size: 28px !important;
-                margin-bottom: 5px !important;
-            }
-            .report-date {
-                display: block !important;
-                color: #666 !important;
-                font-size: 14px !important;
-            }
-
-            /* Professional Table Styling */
-            table {
-                border: 1px solid #ccc !important;
-                width: 100% !important;
-            }
-            th {
-                background-color: #e0e0e0 !important;
-                color: black !important;
-                border: 1px solid #ccc !important;
-                padding: 10px !important;
-                text-transform: uppercase !important;
-                font-size: 12px !important;
-            }
-            td {
-                border: 1px solid #ccc !important;
-                padding: 10px !important;
-                color: black !important;
-            }
-            /* Zebra striping for rows */
-            tr:nth-child(even) td {
-                background-color: #f9f9f9 !important;
-            }
-
-            /* Inputs as clean text */
-            input {
-                border: none !important;
-                background: transparent !important;
-                color: black !important;
-                padding: 0 !important;
-                font-weight: 500;
-                font-family: inherit !important;
-                font-size: 14px !important;
-            }
-            /* Center-align number columns */
-            td:not(:first-child) input,
-            th:not(:first-child),
-            .row-percent {
-                text-align: center !important;
-            }
-
-            /* Result Box Styling for Print */
-            .controls {
-                display: block !important; /* Stack elements */
-                margin-top: 30px !important;
-            }
-            .result-box {
-                background-color: white !important;
-                border: 2px solid #333 !important;
-                color: black !important;
-                padding: 20px !important;
-                width: 300px !important;
-                float: right !important; /* Move to the right */
-            }
-            .result-box div {
-                color: black !important;
-                font-size: 16px !important;
-            }
-            .final-grade {
-                color: black !important;
-                font-size: 32px !important;
-                margin-top: 10px !important;
-            }
+            body { background-color: white !important; color: black !important; padding: 0 !important; }
+            .container { box-shadow: none !important; max-width: 100% !important; padding: 20px !important; border: none !important; }
+            .header-row { border-bottom: 2px solid #333 !important; margin-bottom: 30px !important; display: block !important; }
+            h2 { color: black !important; font-size: 28px !important; margin-bottom: 5px !important; }
+            .report-date { display: block !important; color: #666 !important; font-size: 14px !important; }
+            
+            table { border: 1px solid #ccc !important; width: 100% !important; }
+            th { background-color: #e0e0e0 !important; color: black !important; border: 1px solid #ccc !important; padding: 10px !important; text-transform: uppercase !important; font-size: 12px !important; }
+            td { border: 1px solid #ccc !important; padding: 10px !important; color: black !important; }
+            tr:nth-child(even) td { background-color: #f9f9f9 !important; }
+            
+            input { border: none !important; background: transparent !important; color: black !important; padding: 0 !important; font-weight: 500; font-family: inherit !important; font-size: 14px !important; }
+            td:not(:first-child) input, th:not(:first-child), .row-percent { text-align: center !important; }
+            
+            .controls { display: block !important; margin-top: 30px !important; }
+            .result-box { background-color: white !important; border: 2px solid #333 !important; color: black !important; padding: 20px !important; width: 300px !important; float: right !important; }
+            .result-box div { color: black !important; font-size: 16px !important; }
+            .final-grade { color: black !important; font-size: 32px !important; margin-top: 10px !important; }
             .row-percent { color: black !important; }
         }
     </style>
@@ -309,7 +291,8 @@
                 <th>Total Points</th>
                 <th>Current %</th>
                 <th>Weight (%)</th>
-                <th></th> </tr>
+                <th></th>
+            </tr>
         </thead>
         <tbody id="tableBody">
             </tbody>
@@ -327,10 +310,28 @@
             <div class="final-grade" id="finalGrade">0.00%</div>
         </div>
     </div>
+
+    <div class="goal-section">
+        <h3>🏆 Goal Calculator</h3>
+        <div class="goal-controls">
+            <div class="goal-input-group">
+                <label>Target Grade (%)</label>
+                <input type="number" id="targetGrade" placeholder="90" style="width: 100px;">
+            </div>
+            <div class="goal-input-group">
+                <label>Calculate For Category</label>
+                <select id="goalCategorySelect" onmousedown="updateGoalDropdown()" style="width: 250px;">
+                    <option value="">Select a category...</option>
+                </select>
+            </div>
+            <button class="calc-goal-btn" onclick="calculateGoal()">Calculate Needed Score</button>
+        </div>
+        <div class="goal-result" id="goalResult"></div>
+    </div>
+
 </div>
 
 <script>
-    // Set the date for the report
     document.getElementById('reportDate').innerText = new Date().toLocaleDateString();
 
     /* --- THEME LOGIC --- */
@@ -365,12 +366,13 @@
         addRow();
         addRow();
         calculate();
+        updateGoalDropdown();
     }
 
     function addRow() {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td><input type="text" class="category-input" placeholder="Category Name"></td>
+            <td><input type="text" class="category-input" placeholder="Category Name" onchange="updateGoalDropdown()"></td>
             <td><input type="number" class="num-input earned" placeholder="0" oninput="calculate()"></td>
             <td><input type="number" class="num-input max" placeholder="0" oninput="calculate()"></td>
             <td class="row-percent">0.00%</td>
@@ -383,6 +385,7 @@
     function removeRow(btn) {
         btn.closest('tr').remove();
         calculate();
+        updateGoalDropdown();
     }
 
     function calculate() {
@@ -396,7 +399,6 @@
             const weight = parseFloat(row.querySelector('.weight').value) || 0;
             const percentDisplay = row.querySelector('.row-percent');
 
-            // 1. Calculate Row Percentage
             if (max > 0) {
                 const p = (earned / max) * 100;
                 percentDisplay.innerText = p.toFixed(2) + '%';
@@ -404,7 +406,6 @@
                 percentDisplay.innerText = 'N/A';
             }
 
-            // 2. Calculate Weighted contribution
             if (max > 0) {
                 totalWeightedScore += (earned / max) * weight;
                 totalWeight += weight;
@@ -413,10 +414,8 @@
             }
         });
 
-        // Update Totals
         weightDisplay.innerText = `Total Weight: ${totalWeight}%`;
         
-        // Handle styling for total weight
         if (totalWeight !== 100 && totalWeight !== 0) {
             weightDisplay.classList.add('total-weight-warning');
         } else {
@@ -424,6 +423,103 @@
         }
 
         finalGradeDisplay.innerText = totalWeightedScore.toFixed(2) + '%';
+    }
+
+    /* --- GOAL SEEKING LOGIC --- */
+    function updateGoalDropdown() {
+        const select = document.getElementById('goalCategorySelect');
+        const rows = document.querySelectorAll('#tableBody tr');
+        
+        // Save current selection to restore after rebuild
+        const currentVal = select.value;
+
+        // Clear existing options
+        select.innerHTML = '<option value="">Select a category...</option>';
+
+        rows.forEach((row, index) => {
+            const nameInput = row.querySelector('.category-input').value;
+            const label = nameInput.trim() !== "" ? nameInput : `Row ${index + 1}`;
+            const option = document.createElement('option');
+            option.value = index;
+            option.text = label;
+            select.appendChild(option);
+        });
+
+        select.value = currentVal;
+    }
+
+    function calculateGoal() {
+        const target = parseFloat(document.getElementById('targetGrade').value);
+        const selectedIndex = document.getElementById('goalCategorySelect').value;
+        const resultDiv = document.getElementById('goalResult');
+
+        if (isNaN(target)) {
+            resultDiv.innerHTML = "Please enter a valid target grade percentage.";
+            return;
+        }
+        if (selectedIndex === "") {
+            resultDiv.innerHTML = "Please select a category to calculate for.";
+            return;
+        }
+
+        // --- THE MATH ---
+        // Formula: Target = (Sum of OTHER weighted scores) + (Needed / Max * Weight)
+        // Therefore: Needed = ((Target - OtherSums) / Weight) * Max
+
+        let sumOfOthers = 0;
+        let targetMax = 0;
+        let targetWeight = 0;
+        let targetName = "";
+
+        const rows = document.querySelectorAll('#tableBody tr');
+        
+        // Loop through rows to separate the Target from the Others
+        rows.forEach((row, index) => {
+            const earned = parseFloat(row.querySelector('.earned').value) || 0;
+            const max = parseFloat(row.querySelector('.max').value) || 0;
+            const weight = parseFloat(row.querySelector('.weight').value) || 0;
+
+            if (index == selectedIndex) {
+                // This is our variable row
+                targetMax = max;
+                targetWeight = weight;
+                targetName = row.querySelector('.category-input').value || "Selected Category";
+            } else {
+                // This is a fixed row
+                if (max > 0) {
+                    sumOfOthers += (earned / max) * weight;
+                }
+            }
+        });
+
+        // Validation
+        if (targetWeight === 0) {
+            resultDiv.innerHTML = `Category <strong>${targetName}</strong> has no weight (0%). Please enter a weight first.`;
+            return;
+        }
+        if (targetMax === 0) {
+            resultDiv.innerHTML = `Category <strong>${targetName}</strong> has 0 total points. Please enter Max Points first.`;
+            return;
+        }
+
+        // Calculation
+        // Step 1: Calculate the weighted points needed from this specific category
+        const weightedPointsNeeded = target - sumOfOthers;
+        
+        // Step 2: Convert weighted points back to raw points
+        // NeededPoints = (WeightedPointsNeeded / Weight) * MaxPoints
+        const pointsNeeded = (weightedPointsNeeded / targetWeight) * targetMax;
+
+        const percentageNeeded = (pointsNeeded / targetMax) * 100;
+
+        // Display
+        resultDiv.innerHTML = `
+            To get a <strong>${target}%</strong> overall, you need:<br>
+            <span style="font-size: 1.2em; color: var(--accent-hover);">
+                ${pointsNeeded.toFixed(2)} / ${targetMax} points (${percentageNeeded.toFixed(2)}%)
+            </span>
+            <br>on <em>${targetName}</em>.
+        `;
     }
 
     initTheme();
