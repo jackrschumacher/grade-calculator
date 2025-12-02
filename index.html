@@ -107,8 +107,34 @@
             padding-bottom: 10px;
         }
 
-        h2 { margin: 0; color: var(--heading-color); }
+        h2 { margin: 0; color: var(--heading-color); font-size: 1.5rem; }
         .report-date { display: none; }
+
+        /* Course Name Input Styling */
+        .course-name-input {
+            display: block;
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--heading-color);
+            background: transparent;
+            border: 1px dashed var(--input-border);
+            border-width: 0 0 1px 0;
+            width: 100%;
+            max-width: 400px;
+            padding: 5px 0;
+            margin-bottom: 5px;
+            transition: border-color 0.3s;
+        }
+        .course-name-input:focus {
+            outline: none;
+            border-bottom: 2px solid var(--accent-color);
+        }
+        .course-name-input::placeholder {
+            color: var(--text-muted);
+            font-weight: normal;
+            font-size: 1.5rem;
+            font-style: italic;
+        }
 
         .header-actions {
             display: flex;
@@ -166,7 +192,9 @@
             font-size: 14px;
         }
 
+        /* Update number inputs to support text (math expressions) */
         input[type="number"] { text-align: right; }
+        .num-input { text-align: right; }
         .category-input { width: 200px; }
         .num-input { width: 80px; }
         
@@ -436,8 +464,26 @@
             body { background-color: white !important; color: black !important; padding: 0 !important; display: block !important; }
             .container { box-shadow: none !important; max-width: 100% !important; padding: 20px !important; border: none !important; margin: 0 !important; }
             .header-row { border-bottom: 2px solid #333 !important; margin-bottom: 30px !important; display: block !important; }
-            h2 { color: black !important; font-size: 28px !important; margin-bottom: 5px !important; }
+            
+            /* Hide the static H2 title so we can use the input as the title */
+            h2 { display: none !important; } 
+            
             .report-date { display: block !important; color: #666 !important; font-size: 14px !important; }
+            
+            /* Course Name Styling for PDF */
+            .course-name-input {
+                border: none !important;
+                background: transparent !important;
+                font-size: 28px !important;
+                font-weight: bold !important;
+                color: black !important;
+                margin-bottom: 10px !important;
+                padding: 0 !important;
+                width: 100% !important;
+            }
+            .course-name-input::placeholder {
+                color: transparent !important; /* Don't print placeholder text */
+            }
             
             table { border: 1px solid #ccc !important; width: 100% !important; }
             th { background-color: #e0e0e0 !important; color: black !important; border: 1px solid #ccc !important; padding: 10px !important; text-transform: uppercase !important; font-size: 12px !important; }
@@ -460,6 +506,8 @@
 <div class="container">
     <div class="header-row">
         <div>
+            <!-- Course Name Input -->
+            <input type="text" id="courseNameInput" class="course-name-input" placeholder="Enter Course Name..." oninput="updatePageTitle(this)">
             <h2>Course Grade Report</h2>
             <div class="report-date" id="reportDate"></div>
         </div>
@@ -832,6 +880,52 @@
     const finalGradeDisplay = document.getElementById('finalGrade');
     const weightDisplay = document.getElementById('weightDisplay');
 
+    // Helper to evaluate simple math (e.g. "22+5")
+    function parseScore(input) {
+        if (!input) return 0;
+        // Clean string: allow digits, dot, operators +, -, *, /, (, )
+        const clean = input.toString().replace(/[^0-9\.\+\-\*\/\(\)]/g, '');
+        if (!clean) return 0;
+        try {
+            // Check if it creates a valid number
+            const result = new Function('return ' + clean)();
+            return isFinite(result) ? result : 0;
+        } catch (e) {
+            return 0;
+        }
+    }
+
+    /* --- INPUT FOCUS/BLUR HANDLERS --- */
+    function handleFocus(input) {
+        // When clicking in, show the raw formula if it exists (e.g. show "22+25" instead of "47")
+        if (input.dataset.raw) {
+            input.value = input.dataset.raw;
+        }
+    }
+
+    function handleBlur(input) {
+        // When leaving the box, save the formula and show the calculated result
+        const rawValue = input.value;
+        input.dataset.raw = rawValue;
+        
+        // Only calculate if not empty
+        if (rawValue.trim() !== "") {
+            const result = parseScore(rawValue);
+            // Update the display to show the result (e.g. "47")
+            // We strip decimals if it's a whole number for cleaner look
+            input.value = Number.isInteger(result) ? result : result.toFixed(2);
+        }
+    }
+
+    function updatePageTitle(input) {
+        const val = input.value.trim();
+        if (val) {
+            document.title = val; // Set the page title which becomes the PDF filename
+        } else {
+            document.title = "Grade Calculator";
+        }
+    }
+
     function initCalculator() {
         addRow();
         addRow();
@@ -842,10 +936,12 @@
 
     function addRow() {
         const row = document.createElement('tr');
+        // Inputs are now type="text" to allow formulas like "22+5"
+        // Added onfocus and onblur to handle formula view
         row.innerHTML = `
             <td><input type="text" class="category-input" placeholder="Category Name" onchange="updateGoalDropdown()"></td>
-            <td><input type="number" class="num-input earned" placeholder="0" oninput="calculate()"></td>
-            <td><input type="number" class="num-input max" placeholder="0" oninput="calculate()"></td>
+            <td><input type="text" class="num-input earned" placeholder="0" oninput="calculate()" onfocus="handleFocus(this)" onblur="handleBlur(this)"></td>
+            <td><input type="text" class="num-input max" placeholder="0" oninput="calculate()" onfocus="handleFocus(this)" onblur="handleBlur(this)"></td>
             <td class="row-percent">0.00%</td>
             <td><input type="number" class="num-input weight" placeholder="0" oninput="calculate()"></td>
             <td><button class="delete-btn" onclick="removeRow(this)">×</button></td>
@@ -863,7 +959,7 @@
         let totalWeightedScore = 0;
         let totalWeight = 0;
         let totalMaxPointsForStats = 0;
-        let allCategoriesFilled = true; // New flag for stats tracking
+        let allCategoriesFilled = true;
 
         const rows = document.querySelectorAll('#tableBody tr');
 
@@ -872,13 +968,13 @@
             const maxInput = row.querySelector('.max');
             const weightInput = row.querySelector('.weight');
 
-            // Check if ANY required field is empty in this row
             if (earnedInput.value === '' || maxInput.value === '' || weightInput.value === '') {
                 allCategoriesFilled = false;
             }
 
-            const earned = parseFloat(earnedInput.value) || 0;
-            const max = parseFloat(maxInput.value) || 0;
+            // Use parseScore to handle both simple numbers and "22+5"
+            const earned = parseScore(earnedInput.value);
+            const max = parseScore(maxInput.value);
             const weight = parseFloat(weightInput.value) || 0;
             const percentDisplay = row.querySelector('.row-percent');
 
@@ -908,7 +1004,6 @@
 
         finalGradeDisplay.innerText = totalWeightedScore.toFixed(2) + '%';
 
-        // Only record stats if all categories are completely filled out
         if (typeof window.recordCalculationStat === 'function' && allCategoriesFilled && rows.length > 0) {
             window.recordCalculationStat(totalMaxPointsForStats, rows.length);
         }
@@ -955,8 +1050,8 @@
         const rows = document.querySelectorAll('#tableBody tr');
         
         rows.forEach((row, index) => {
-            const earned = parseFloat(row.querySelector('.earned').value) || 0;
-            const max = parseFloat(row.querySelector('.max').value) || 0;
+            const earned = parseScore(row.querySelector('.earned').value);
+            const max = parseScore(row.querySelector('.max').value);
             const weight = parseFloat(row.querySelector('.weight').value) || 0;
 
             if (index == selectedIndex) {
