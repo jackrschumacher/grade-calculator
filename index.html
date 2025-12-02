@@ -462,7 +462,22 @@
 
         /* --- PRINT / PDF EXPORT STYLES --- */
         @media print {
-            .buttons-left, .delete-btn, .header-actions, th:last-child, td:last-child, .goal-section, .stats-btn, .modal-overlay {
+            .buttons-left, .delete-btn, .header-actions, th:last-child, td:last-child, .stats-btn, .modal-overlay {
+                display: none !important;
+            }
+
+            /* Only show Goal Section if it has been calculated */
+            .goal-section {
+                display: none; /* Hidden by default in print */
+            }
+            .goal-section.goal-calculated {
+                display: block !important;
+                border: 1px solid #ccc;
+                background-color: white !important;
+                color: black !important;
+            }
+            /* Hide controls inside goal section during print */
+            .goal-controls {
                 display: none !important;
             }
 
@@ -554,7 +569,7 @@
     </div>
 
     <!-- GOAL CALCULATOR SECTION -->
-    <div class="goal-section">
+    <div class="goal-section" id="goalSection">
         <h3>🏆 Goal Calculator</h3>
         <div class="goal-controls">
             <div class="goal-input-group">
@@ -652,6 +667,8 @@
 
     // --- WRITE STATS LOGIC ---
     let debounceTimer;
+    let sessionMaxCategories = 0; // Track max categories for this session
+
     window.recordCalculationStat = function(currentTotalPoints, categoryCount) {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
@@ -659,15 +676,26 @@
                 const monthKey = getMonthKey();
                 const updates = {};
                 
+                // Calculate unique categories added since last record
+                let categoriesToAdd = 0;
+                if (categoryCount > sessionMaxCategories) {
+                    categoriesToAdd = categoryCount - sessionMaxCategories;
+                    sessionMaxCategories = categoryCount;
+                }
+
                 // Update Global Stats
                 updates['stats/global/grades_calculated'] = increment(1);
                 updates['stats/global/total_points'] = increment(currentTotalPoints);
-                updates['stats/global/total_categories'] = increment(categoryCount);
+                if (categoriesToAdd > 0) {
+                    updates['stats/global/total_categories'] = increment(categoriesToAdd);
+                }
                 
                 // Update Monthly Stats
                 updates[`stats/monthly/${monthKey}/grades_calculated`] = increment(1);
                 updates[`stats/monthly/${monthKey}/total_points`] = increment(currentTotalPoints);
-                updates[`stats/monthly/${monthKey}/total_categories`] = increment(categoryCount);
+                if (categoriesToAdd > 0) {
+                    updates[`stats/monthly/${monthKey}/total_categories`] = increment(categoriesToAdd);
+                }
 
                 update(ref(db), updates);
             }
@@ -969,6 +997,10 @@
             document.getElementById('courseNameInput').value = '';
             document.getElementById('targetGrade').value = '';
             document.getElementById('goalResult').innerHTML = '';
+            
+            // Remove calculated class
+            document.getElementById('goalSection').classList.remove('goal-calculated');
+            
             updatePageTitle({value: ''}); 
             initCalculator();
         }
@@ -980,7 +1012,6 @@
         btn.innerText = "Sending...";
         btn.disabled = true;
 
-        // 1. Gather Data
         const courseName = document.getElementById('courseNameInput').value || "Course Grade Report";
         const finalGrade = document.getElementById('finalGrade').innerText;
         
@@ -995,30 +1026,14 @@
             
             message += `- ${cat}: ${earned}/${max} (Weight: ${weight}%)\n`;
         });
-
-        // 2. Send via FormSubmit.co
-        // REPLACE "YOUR_EMAIL_ADDRESS" BELOW WITH YOUR ACTUAL EMAIL TO TEST
-        // For the public version, you typically need a backend to hide the email, 
-        // OR use the 'mailto' method if you don't want your email exposed in source code.
-        // HOWEVER, FormSubmit allows you to use a random "String ID" after you activate it to hide your email.
-        // For now, we will use the 'mailto' logic as a fallback if you prefer privacy,
-        // OR we can use the fetch method if you are okay with a fixed destination.
         
-        // Since this is a public tool for OTHERS to email THEMSELVES, 
-        // FormSubmit isn't ideal because it sends email TO YOU (the site owner).
-        
-        // RE-EVALUATION: 
-        // If you want users to email the report TO THEMSELVES, the 'mailto' method 
-        // (Option A from before) is actually the ONLY free way to do this securely.
-        // Services like EmailJS or FormSubmit send emails to the *site owner*, not the *user*.
-        // Unless you have a backend that sends emails on behalf of the user (which costs money/risk).
-        
-        // I will revert to the 'mailto' method but enhance it to be cleaner, 
-        // as sending automated emails to *user-entered* addresses via client-side JS 
-        // usually gets blocked or requires paid tiers (SendGrid/AWS SES).
-        
-        // Let's stick to the robust 'mailto' approach which guarantees the user gets the email
-        // and costs you nothing.
+        // Add Goal Result to email if it exists
+        const goalText = document.getElementById('goalResult').innerText;
+        if (goalText && goalText.trim().length > 0) {
+            // Basic cleanup of newlines/spaces
+            const cleanGoal = goalText.replace(/\n+/g, ' ').trim();
+            message += `\n\nGoal Analysis:\n${cleanGoal}`;
+        }
         
         const subject = encodeURIComponent(`${courseName} - Grade Report`);
         const bodyEnc = encodeURIComponent(message);
@@ -1108,6 +1123,7 @@
         const target = parseFloat(document.getElementById('targetGrade').value);
         const selectedIndex = document.getElementById('goalCategorySelect').value;
         const resultDiv = document.getElementById('goalResult');
+        const goalSection = document.getElementById('goalSection');
 
         if (isNaN(target)) {
             resultDiv.innerHTML = "Please enter a valid target grade percentage.";
@@ -1161,6 +1177,9 @@
             </span>
             <br>on <em>${targetName}</em>.
         `;
+        
+        // Add class to show section in PDF
+        goalSection.classList.add('goal-calculated');
     }
 
     initTheme();
