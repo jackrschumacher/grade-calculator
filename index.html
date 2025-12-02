@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grade Calculator</title>
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
     <!-- Chart.js for the Dashboard -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -229,6 +228,12 @@
 
         button.export-btn { background-color: #27ae60; }
         button.export-btn:hover { background-color: #2ecc71; }
+        
+        button.email-btn { background-color: #8e44ad; }
+        button.email-btn:hover { background-color: #9b59b6; }
+
+        button.clear-btn { background-color: #7f8c8d; }
+        button.clear-btn:hover { background-color: #95a5a6; }
 
         button.delete-btn {
             background-color: var(--delete-btn);
@@ -536,7 +541,9 @@
     <div class="controls">
         <div class="buttons-left">
             <button class="btn-std add-btn" onclick="addRow()">+ Add Category</button>
+            <button class="btn-std clear-btn" onclick="clearAll()">Clear</button>
             <button class="btn-std export-btn" id="exportBtn">Export PDF</button>
+            <button class="btn-std email-btn" onclick="emailReport()">Email Report</button>
         </div>
         
         <div class="result-box">
@@ -953,6 +960,75 @@
         btn.closest('tr').remove();
         calculate();
         updateGoalDropdown();
+    }
+
+    function clearAll() {
+        if(confirm("Are you sure you want to clear all data?")) {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+            document.getElementById('courseNameInput').value = '';
+            document.getElementById('targetGrade').value = '';
+            document.getElementById('goalResult').innerHTML = '';
+            updatePageTitle({value: ''}); 
+            initCalculator();
+        }
+    }
+
+    function emailReport() {
+        const btn = document.querySelector('.email-btn');
+        const originalText = btn.innerText;
+        btn.innerText = "Sending...";
+        btn.disabled = true;
+
+        // 1. Gather Data
+        const courseName = document.getElementById('courseNameInput').value || "Course Grade Report";
+        const finalGrade = document.getElementById('finalGrade').innerText;
+        
+        let message = `Course: ${courseName}\nFinal Grade: ${finalGrade}\n\nBreakdown:\n`;
+        
+        const rows = document.querySelectorAll('#tableBody tr');
+        rows.forEach(row => {
+            const cat = row.querySelector('.category-input').value || "Category";
+            const earned = row.querySelector('.earned').value || 0;
+            const max = row.querySelector('.max').value || 0;
+            const weight = row.querySelector('.weight').value || 0;
+            
+            message += `- ${cat}: ${earned}/${max} (Weight: ${weight}%)\n`;
+        });
+
+        // 2. Send via FormSubmit.co
+        // REPLACE "YOUR_EMAIL_ADDRESS" BELOW WITH YOUR ACTUAL EMAIL TO TEST
+        // For the public version, you typically need a backend to hide the email, 
+        // OR use the 'mailto' method if you don't want your email exposed in source code.
+        // HOWEVER, FormSubmit allows you to use a random "String ID" after you activate it to hide your email.
+        // For now, we will use the 'mailto' logic as a fallback if you prefer privacy,
+        // OR we can use the fetch method if you are okay with a fixed destination.
+        
+        // Since this is a public tool for OTHERS to email THEMSELVES, 
+        // FormSubmit isn't ideal because it sends email TO YOU (the site owner).
+        
+        // RE-EVALUATION: 
+        // If you want users to email the report TO THEMSELVES, the 'mailto' method 
+        // (Option A from before) is actually the ONLY free way to do this securely.
+        // Services like EmailJS or FormSubmit send emails to the *site owner*, not the *user*.
+        // Unless you have a backend that sends emails on behalf of the user (which costs money/risk).
+        
+        // I will revert to the 'mailto' method but enhance it to be cleaner, 
+        // as sending automated emails to *user-entered* addresses via client-side JS 
+        // usually gets blocked or requires paid tiers (SendGrid/AWS SES).
+        
+        // Let's stick to the robust 'mailto' approach which guarantees the user gets the email
+        // and costs you nothing.
+        
+        const subject = encodeURIComponent(`${courseName} - Grade Report`);
+        const bodyEnc = encodeURIComponent(message);
+        
+        window.location.href = `mailto:?subject=${subject}&body=${bodyEnc}`;
+        
+        setTimeout(() => {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }, 1000);
     }
 
     function calculate() {
