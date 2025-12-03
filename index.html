@@ -463,7 +463,7 @@
             .course-name-input { font-size: 1.5rem; max-width: 100%; }
 
             .footer-row { 
-                flex-direction: column-reverse; 
+                flex-direction: column-reverse; /* Result box on top of Goal on Mobile */
                 gap: 30px; 
             }
             .result-box-wrapper { flex: auto; width: 100%; }
@@ -474,7 +474,7 @@
             .final-grade { font-size: 2rem; }
 
             .buttons-row { display: grid; grid-template-columns: 1fr 1fr; }
-            .buttons-row button:last-child { grid-column: span 2; } 
+            .buttons-row button:last-child { grid-column: span 2; } /* Share button full width */
 
             .goal-controls { flex-direction: column; align-items: stretch; }
             .goal-input-group { width: 100%; }
@@ -868,6 +868,16 @@
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     }
 
+    // Helper to format month name (e.g. 2025-12 -> December 2025)
+    function formatMonthLabel(key) {
+        const parts = key.split('-');
+        if(parts.length !== 2) return key;
+        const year = parseInt(parts[0]);
+        const monthIndex = parseInt(parts[1]) - 1;
+        const date = new Date(year, monthIndex);
+        return date.toLocaleDateString('default', { month: 'long', year: 'numeric' });
+    }
+
     function isLocalhost() {
         return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     }
@@ -967,7 +977,8 @@
                 tbody.innerHTML = '';
 
                 months.forEach(m => {
-                    labels.push(m);
+                    // Use formatted label for chart
+                    labels.push(formatMonthLabel(m));
                     gradeData.push(monthly[m].grades_calculated || 0);
                     pointsData.push(monthly[m].total_points || 0);
                     exportData.push(monthly[m].reports_exported || 0);
@@ -976,7 +987,8 @@
                 [...months].reverse().forEach(m => {
                     const row = monthly[m];
                     const tr = document.createElement('tr');
-                    tr.innerHTML = `<td>${m}</td><td class="text-green">${(row.grades_calculated||0).toLocaleString()}</td><td class="text-orange">${(row.total_points||0).toLocaleString()}</td><td class="text-purple">${(row.reports_exported||0).toLocaleString()}</td>`;
+                    // Use formatted label for table
+                    tr.innerHTML = `<td>${formatMonthLabel(m)}</td><td class="text-green">${(row.grades_calculated||0).toLocaleString()}</td><td class="text-orange">${(row.total_points||0).toLocaleString()}</td><td class="text-purple">${(row.reports_exported||0).toLocaleString()}</td>`;
                     tbody.appendChild(tr);
                 });
 
@@ -1326,22 +1338,7 @@
     const finalGradeDisplay = document.getElementById('finalGrade');
     const weightDisplay = document.getElementById('weightDisplay');
 
-    // Helper: Convert percentage to standard US 4.0 scale GPA & Letter Grade
-    function getGradeInfo(percentage) {
-        if (percentage >= 93) return { gpa: '4.0', letter: 'A' };
-        if (percentage >= 90) return { gpa: '3.7', letter: 'A-' };
-        if (percentage >= 87) return { gpa: '3.3', letter: 'B+' };
-        if (percentage >= 83) return { gpa: '3.0', letter: 'B' };
-        if (percentage >= 80) return { gpa: '2.7', letter: 'B-' };
-        if (percentage >= 77) return { gpa: '2.3', letter: 'C+' };
-        if (percentage >= 73) return { gpa: '2.0', letter: 'C' };
-        if (percentage >= 70) return { gpa: '1.7', letter: 'C-' };
-        if (percentage >= 67) return { gpa: '1.3', letter: 'D+' };
-        if (percentage >= 63) return { gpa: '1.0', letter: 'D' };
-        if (percentage >= 60) return { gpa: '0.7', letter: 'D-' };
-        return { gpa: '0.0', letter: 'F' };
-    }
-
+    // Helper to evaluate simple math (e.g. "22+5")
     function parseScore(input) {
         if (!input) return 0;
         // Clean string: allow digits, dot, operators +, -, *, /, (, )
