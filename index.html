@@ -468,88 +468,180 @@
 
         /* --- PRINT / PDF EXPORT STYLES --- */
         @media print {
-            .buttons-left, .delete-btn, .header-actions, th:last-child, td:last-child, .stats-btn, .modal-overlay {
-                display: none !important;
+            /* General Print Reset */
+            @page {
+                margin: 0.75in;
+                size: auto;
             }
 
-            /* Only show Goal Section if it has been calculated */
-            .goal-section {
-                display: none; /* Hidden by default in print */
-            }
-            .goal-section.goal-calculated {
-                display: block !important;
-                border: 1px solid #ccc;
-                background-color: white !important;
-                color: black !important;
-            }
-            /* Hide controls inside goal section during print */
-            .goal-controls {
+            .buttons-left, .delete-btn, .header-actions, th:last-child, td:last-child, .stats-btn, .modal-overlay {
                 display: none !important;
             }
 
             body { 
                 background-color: white !important; 
-                color: black !important; 
+                color: #222 !important; 
                 padding: 0 !important; 
+                margin: 0 !important;
                 display: block !important; 
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
             }
             
             .container { 
                 box-shadow: none !important; 
                 width: 100% !important;
                 max-width: 100% !important; 
-                padding: 0px 20px !important; /* Reduced top/bottom padding to fit more */
+                padding: 0 !important;
                 border: none !important; 
                 margin: 0 !important; 
             }
             
-            .header-row { border-bottom: 2px solid #333 !important; margin-bottom: 30px !important; display: block !important; }
+            /* Header Styling */
+            .header-row { 
+                border-bottom: 3px solid #000 !important; 
+                margin-bottom: 25px !important; 
+                padding-bottom: 10px !important; 
+                display: block !important; 
+            }
             
-            /* Hide the static H2 title so we can use the input as the title */
             h2 { display: none !important; } 
             
-            .report-date { display: block !important; color: #666 !important; font-size: 14px !important; }
+            .report-date { 
+                display: block !important; 
+                color: #555 !important; 
+                font-size: 14px !important; 
+                margin-top: 5px !important;
+            }
             
-            /* Course Name Styling for PDF */
             .course-name-input {
                 border: none !important;
                 background: transparent !important;
-                font-size: 28px !important;
-                font-weight: bold !important;
-                color: black !important;
-                margin-bottom: 10px !important;
+                font-size: 36px !important;
+                font-weight: 800 !important;
+                color: #000 !important;
+                margin-bottom: 0 !important;
                 padding: 0 !important;
                 width: 100% !important;
             }
             .course-name-input::placeholder {
-                color: transparent !important; /* Don't print placeholder text */
+                color: transparent !important; 
             }
             
-            table { border: 1px solid #ccc !important; width: 100% !important; }
-            th { background-color: #e0e0e0 !important; color: black !important; border: 1px solid #ccc !important; padding: 10px !important; text-transform: uppercase !important; font-size: 12px !important; }
-            td { border: 1px solid #ccc !important; padding: 10px !important; color: black !important; }
-            tr:nth-child(even) td { background-color: #f9f9f9 !important; }
+            /* Table Styling */
+            table { 
+                width: 100% !important; 
+                border-collapse: collapse !important; 
+                margin-bottom: 30px !important; 
+            }
             
-            input { border: none !important; background: transparent !important; color: black !important; padding: 0 !important; font-weight: 500; font-family: inherit !important; font-size: 14px !important; }
-            td:not(:first-child) input, th:not(:first-child), .row-percent { text-align: center !important; }
+            th { 
+                background-color: #f8f9fa !important; 
+                color: #000 !important; 
+                border-bottom: 2px solid #000 !important; 
+                border-top: 1px solid #ddd !important;
+                padding: 12px 8px !important; 
+                text-transform: uppercase !important; 
+                font-size: 11px !important; 
+                font-weight: 700 !important;
+                letter-spacing: 0.5px;
+            }
             
-            .controls { display: block !important; margin-top: 30px !important; }
+            td { 
+                border-bottom: 1px solid #eee !important; 
+                padding: 12px 8px !important; 
+                color: #000 !important; 
+                font-size: 13px !important;
+            }
             
-            /* Result Box Print Fixes */
+            /* Inputs look like Text */
+            input { 
+                border: none !important; 
+                background: transparent !important; 
+                color: #000 !important; 
+                padding: 0 !important; 
+                font-weight: 500; 
+                font-family: inherit !important; 
+                font-size: 13px !important; 
+            }
+            
+            /* Alignments */
+            td:not(:first-child) input, 
+            th:not(:first-child), 
+            .row-percent { 
+                text-align: right !important; 
+            }
+            
+            /* Footer Layout - Using a cleaner Float approach to ensure compatibility */
+            .controls {
+                display: block !important; 
+                margin-top: 0 !important;
+                overflow: hidden; /* Clear floats */
+            }
+            
+            /* Left Side: Goal Calculator */
+            .goal-section {
+                display: none; 
+            }
+            .goal-section.goal-calculated {
+                display: block !important;
+                float: left !important;
+                width: 55% !important;
+                border: 1px solid #ddd !important;
+                border-left: 4px solid #333 !important;
+                background-color: #fafafa !important;
+                color: #000 !important;
+                padding: 15px !important;
+                border-radius: 4px !important;
+                box-sizing: border-box !important;
+                margin-top: 0 !important;
+            }
+            
+            .goal-section h3 {
+                margin-top: 0 !important;
+                font-size: 16px !important;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 8px;
+                margin-bottom: 10px;
+                color: #333 !important;
+            }
+            
+            .goal-result {
+                margin-top: 0 !important;
+                color: #000 !important;
+                font-size: 14px !important;
+                line-height: 1.5 !important;
+            }
+            
+            .goal-controls { display: none !important; }
+
+            /* Right Side: Result Box */
             .result-box { 
-                background-color: white !important; 
-                border: 2px solid #333 !important; 
-                color: black !important; 
-                padding: 20px !important; 
-                width: 300px !important; 
                 float: right !important; 
-                /* Ensure margins are safe */
-                margin-right: 0 !important;
+                width: 40% !important; 
+                background-color: #fff !important; 
+                border: 2px solid #000 !important; 
+                color: #000 !important; 
+                padding: 20px !important; 
+                border-radius: 6px !important;
+                box-sizing: border-box !important;
+                text-align: right !important;
             }
             
-            .result-box div { color: black !important; font-size: 16px !important; }
-            .final-grade { color: black !important; font-size: 32px !important; margin-top: 10px !important; }
-            .row-percent { color: black !important; }
+            .result-box div { 
+                color: #555 !important; 
+                font-size: 14px !important; 
+                margin-bottom: 5px !important;
+            }
+            
+            .final-grade { 
+                color: #000 !important; 
+                font-size: 36px !important; 
+                margin-top: 10px !important; 
+                font-weight: 800 !important;
+            }
+            
+            /* Hide chart colors in print if needed, but text is forced black */
+            .row-percent { color: #000 !important; }
         }
     </style>
 </head>
@@ -705,6 +797,7 @@
     // --- WRITE STATS LOGIC ---
     let debounceTimer;
     let sessionMaxCategories = 0; // Track max categories for this session
+    let sessionMaxPoints = 0;     // Track max points for this session
 
     window.recordCalculationStat = function(currentTotalPoints, categoryCount) {
         // Prevent recording on localhost
@@ -723,16 +816,31 @@
                     sessionMaxCategories = categoryCount;
                 }
 
+                // Calculate unique points added since last record
+                let pointsToAdd = 0;
+                if (currentTotalPoints > sessionMaxPoints) {
+                    pointsToAdd = currentTotalPoints - sessionMaxPoints;
+                    sessionMaxPoints = currentTotalPoints;
+                }
+
                 // Update Global Stats
                 updates['stats/global/grades_calculated'] = increment(1);
-                updates['stats/global/total_points'] = increment(currentTotalPoints);
+                
+                if (pointsToAdd > 0) {
+                    updates['stats/global/total_points'] = increment(pointsToAdd);
+                }
+                
                 if (categoriesToAdd > 0) {
                     updates['stats/global/total_categories'] = increment(categoriesToAdd);
                 }
                 
                 // Update Monthly Stats
                 updates[`stats/monthly/${monthKey}/grades_calculated`] = increment(1);
-                updates[`stats/monthly/${monthKey}/total_points`] = increment(currentTotalPoints);
+                
+                if (pointsToAdd > 0) {
+                    updates[`stats/monthly/${monthKey}/total_points`] = increment(pointsToAdd);
+                }
+                
                 if (categoriesToAdd > 0) {
                     updates[`stats/monthly/${monthKey}/total_categories`] = increment(categoriesToAdd);
                 }
