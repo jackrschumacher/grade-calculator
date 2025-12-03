@@ -73,6 +73,11 @@
             --close-btn-hover: #ffffff;
         }
 
+        /* FIX: Apply border-box globally to prevent padding from expanding widths */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--bg-color);
@@ -188,7 +193,7 @@
             color: var(--input-text);
             border-radius: 4px;
             width: 100%;
-            box-sizing: border-box;
+            /* box-sizing: border-box; handled by global rule now */
             font-size: 14px;
         }
 
@@ -482,8 +487,22 @@
                 display: none !important;
             }
 
-            body { background-color: white !important; color: black !important; padding: 0 !important; display: block !important; }
-            .container { box-shadow: none !important; max-width: 100% !important; padding: 20px !important; border: none !important; margin: 0 !important; }
+            body { 
+                background-color: white !important; 
+                color: black !important; 
+                padding: 0 !important; 
+                display: block !important; 
+            }
+            
+            .container { 
+                box-shadow: none !important; 
+                width: 100% !important;
+                max-width: 100% !important; 
+                padding: 0px 20px !important; /* Reduced top/bottom padding to fit more */
+                border: none !important; 
+                margin: 0 !important; 
+            }
+            
             .header-row { border-bottom: 2px solid #333 !important; margin-bottom: 30px !important; display: block !important; }
             
             /* Hide the static H2 title so we can use the input as the title */
@@ -515,7 +534,19 @@
             td:not(:first-child) input, th:not(:first-child), .row-percent { text-align: center !important; }
             
             .controls { display: block !important; margin-top: 30px !important; }
-            .result-box { background-color: white !important; border: 2px solid #333 !important; color: black !important; padding: 20px !important; width: 300px !important; float: right !important; }
+            
+            /* Result Box Print Fixes */
+            .result-box { 
+                background-color: white !important; 
+                border: 2px solid #333 !important; 
+                color: black !important; 
+                padding: 20px !important; 
+                width: 300px !important; 
+                float: right !important; 
+                /* Ensure margins are safe */
+                margin-right: 0 !important;
+            }
+            
             .result-box div { color: black !important; font-size: 16px !important; }
             .final-grade { color: black !important; font-size: 32px !important; margin-top: 10px !important; }
             .row-percent { color: black !important; }
