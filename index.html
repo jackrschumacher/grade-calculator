@@ -666,11 +666,19 @@
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     }
 
+    // --- HELPER: CHECK IF LOCALHOST ---
+    function isLocalhost() {
+        return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    }
+
     // --- WRITE STATS LOGIC ---
     let debounceTimer;
     let sessionMaxCategories = 0; // Track max categories for this session
 
     window.recordCalculationStat = function(currentTotalPoints, categoryCount) {
+        // Prevent recording on localhost
+        if (isLocalhost()) return;
+
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
             if (currentTotalPoints > 0) {
@@ -704,6 +712,12 @@
     };
 
     window.recordExportStat = function() {
+        // Always run window.print() first so the user gets their PDF
+        window.print();
+
+        // Prevent recording on localhost
+        if (isLocalhost()) return;
+
         const monthKey = getMonthKey();
         const updates = {};
         
@@ -714,7 +728,6 @@
         updates[`stats/monthly/${monthKey}/reports_exported`] = increment(1);
         
         update(ref(db), updates);
-        window.print();
     };
 
     // --- READ STATS FOR DASHBOARD ---
@@ -736,6 +749,7 @@
                 const months = Object.keys(monthly).sort(); // Sorts YYYY-MM correctly
                 const labels = [];
                 const gradeData = [];
+                const pointsData = []; // New array for points
                 const exportData = [];
                 const tbody = document.getElementById('historyTableBody');
                 tbody.innerHTML = '';
@@ -746,6 +760,7 @@
                 months.forEach(m => {
                     labels.push(m);
                     gradeData.push(monthly[m].grades_calculated || 0);
+                    pointsData.push(monthly[m].total_points || 0); // Collect points data
                     exportData.push(monthly[m].reports_exported || 0);
                 });
 
@@ -762,8 +777,8 @@
                     tbody.appendChild(tr);
                 });
 
-                // 3. Render Chart
-                renderChart(labels, gradeData, exportData);
+                // 3. Render Chart with new pointsData
+                renderChart(labels, gradeData, exportData, pointsData);
             }
         } catch (error) {
             console.error(error);
@@ -782,7 +797,7 @@
     /* --- CHART JS SETUP --- */
     let myChart = null;
 
-    function renderChart(labels, gradeData, exportData) {
+    function renderChart(labels, gradeData, exportData, pointsData) {
         const ctx = document.getElementById('statsChart').getContext('2d');
         
         if (myChart) {
@@ -810,6 +825,17 @@
                         borderColor: '#10b981',
                         borderWidth: 1,
                         yAxisID: 'y',
+                        order: 2
+                    },
+                    {
+                        label: 'Total Points',
+                        data: pointsData,
+                        type: 'line',
+                        borderColor: '#f59e0b', // Orange
+                        backgroundColor: '#f59e0b',
+                        tension: 0.4,
+                        yAxisID: 'y2', // Separate axis
+                        order: 0 // Draw on top
                     },
                     {
                         label: 'Reports Exported',
@@ -819,6 +845,7 @@
                         backgroundColor: '#8b5cf6',
                         tension: 0.4,
                         yAxisID: 'y1',
+                        order: 1
                     }
                 ]
             },
@@ -840,18 +867,28 @@
                         ticks: { color: textColor },
                         grid: { color: gridColor }
                     },
-                    y: {
+                    y: { // Grades Calculated (Left)
                         type: 'linear',
                         display: true,
                         position: 'left',
-                        ticks: { color: textColor },
+                        title: { display: true, text: 'Grades', color: '#10b981' },
+                        ticks: { color: '#10b981' },
                         grid: { color: gridColor }
                     },
-                    y1: {
+                    y1: { // Reports Exported (Right 1)
                         type: 'linear',
                         display: true,
                         position: 'right',
-                        ticks: { color: textColor },
+                        title: { display: true, text: 'Exports', color: '#8b5cf6' },
+                        ticks: { color: '#8b5cf6' },
+                        grid: { drawOnChartArea: false }
+                    },
+                    y2: { // Total Points (Right 2)
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: { display: true, text: 'Points', color: '#f59e0b' },
+                        ticks: { color: '#f59e0b' },
                         grid: { drawOnChartArea: false }
                     }
                 }
