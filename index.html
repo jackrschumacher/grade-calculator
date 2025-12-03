@@ -97,7 +97,7 @@
             border-radius: 8px;
             box-shadow: var(--shadow);
             width: 100%;
-            max-width: 950px;
+            max-width: 1200px; 
             transition: background-color 0.3s;
             margin-bottom: 20px;
             position: relative;
@@ -440,9 +440,45 @@
         @media (max-width: 768px) {
             body { padding: 15px; }
             .container { padding: 20px; }
+            
+            /* Responsive Header */
             .header-row { flex-direction: column; gap: 15px; }
             .header-actions { width: 100%; justify-content: space-between; }
             .course-name-input { font-size: 1.5rem; max-width: 100%; }
+
+            /* Switch Table to Cards */
+            thead { display: none; }
+            table, tbody, tr, td { display: block; width: 100%; }
+            tr {
+                margin-bottom: 20px;
+                background: var(--container-bg);
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                padding: 20px;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 15px;
+            }
+            /* Category Name (Full Width) */
+            td:nth-of-type(1) { grid-column: 1 / -1; padding: 0; }
+            /* Points (Left & Right) */
+            td:nth-of-type(2) { padding: 0; }
+            td:nth-of-type(3) { padding: 0; }
+            /* Weight (Left) */
+            td:nth-of-type(5) { padding: 0; }
+            /* Percent (Right, Text Only) */
+            td:nth-of-type(4) { padding: 0; display: flex; align-items: center; justify-content: flex-end; }
+            /* Delete (Full Width Bottom) */
+            td:nth-of-type(6) { grid-column: 1 / -1; padding: 0; margin-top: 10px; }
+            
+            /* Labels for Context */
+            td:nth-of-type(2)::before { content: "Points Earned"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
+            td:nth-of-type(3)::before { content: "Total Points"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
+            td:nth-of-type(5)::before { content: "Weight (%)"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
+            td:nth-of-type(1)::before { content: "Category Name"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
+
+            .delete-btn { width: 100%; padding: 10px; }
 
             .footer-row { 
                 flex-direction: column-reverse; /* Result box on top of Goal on Mobile */
@@ -466,22 +502,108 @@
 
         /* --- PRINT / PDF EXPORT STYLES --- */
         @media print {
-            @page { margin: 0.5in; size: auto; }
-            .buttons-left, .delete-btn, .header-actions, .buttons-row, .modal-overlay, .stats-btn { display: none !important; }
-            
-            body { background: white !important; color: black !important; padding: 0 !important; }
-            .container { box-shadow: none !important; padding: 0 !important; max-width: 100% !important; }
-            
-            .header-row { border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 30px; display: block !important; }
-            h2 { display: none; }
-            .course-name-input { border: none; font-size: 28px; font-weight: 800; padding: 0; color: black; }
-            .report-date { display: block !important; color: #555; margin-top: 5px; }
+            /* General Print Reset */
+            @page {
+                margin: 0.75in;
+                size: auto;
+            }
 
-            table { width: 100%; border-collapse: collapse !important; border-spacing: 0 !important; margin-bottom: 30px; }
-            th { border-bottom: 2px solid #000; color: #000; font-weight: 800; padding: 8px; text-transform: uppercase; font-size: 11px; }
-            td { border-bottom: 1px solid #ddd; padding: 10px 8px; }
+            .buttons-left, .delete-btn, .header-actions, .buttons-row, .modal-overlay, .stats-btn { display: none !important; }
+
+            /* Only show Goal Section if it has been calculated */
+            .goal-section {
+                display: none; /* Hidden by default in print */
+            }
+            .goal-section.goal-calculated {
+                display: block !important;
+                float: left !important;
+                width: 55% !important;
+                border: 1px solid #ddd !important;
+                border-left: 4px solid #333 !important;
+                background-color: #fafafa !important;
+                color: #000 !important;
+                padding: 15px !important;
+                border-radius: 4px !important;
+                box-sizing: border-box !important;
+                margin-top: 0 !important;
+                clear: none !important;
+            }
+            /* Hide controls inside goal section during print */
+            .goal-controls {
+                display: none !important;
+            }
+            
+            .goal-section h3 {
+                margin-top: 0 !important;
+                font-size: 16px !important;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 8px;
+                margin-bottom: 10px;
+                color: #333 !important;
+            }
+            
+            .goal-result {
+                margin-top: 0 !important;
+                color: #000 !important;
+                font-size: 14px !important;
+                line-height: 1.5 !important;
+            }
+
+            body { 
+                background-color: white !important; 
+                color: #222 !important; 
+                padding: 0 !important; 
+                margin: 0 !important;
+                display: block !important; 
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+            }
+            
+            .container { 
+                box-shadow: none !important; 
+                width: 100% !important;
+                max-width: 100% !important; 
+                padding: 0 !important;
+                border: none !important; 
+                margin: 0 !important; 
+            }
+            
+            /* Header Styling */
+            .header-row { 
+                border-bottom: 3px solid #000 !important; 
+                margin-bottom: 25px !important; 
+                padding-bottom: 10px !important; 
+                display: block !important; 
+            }
+            
+            h2 { display: none !important; } 
+            
+            .report-date { 
+                display: block !important; 
+                color: #555 !important; 
+                font-size: 14px !important; 
+                margin-top: 5px !important;
+            }
+            
+            .course-name-input {
+                border: none !important;
+                background: transparent !important;
+                font-size: 28px !important;
+                font-weight: bold !important;
+                color: black !important;
+                margin-bottom: 10px !important;
+                padding: 0 !important;
+                width: 100% !important;
+            }
+            .course-name-input::placeholder {
+                color: transparent !important; 
+            }
+            
+            /* Table Styling */
+            table { width: 100% !important; border-collapse: collapse !important; border-spacing: 0 !important; margin-bottom: 30px !important; }
+            th { background-color: #f8f9fa !important; color: #000 !important; border-bottom: 2px solid #000 !important; border-top: 1px solid #ddd !important; padding: 12px 8px !important; text-transform: uppercase !important; font-size: 11px !important; font-weight: 700 !important; letter-spacing: 0.5px; }
+            td { border-bottom: 1px solid #ddd; padding: 10px 8px; color: #000 !important; }
             input { border: none; background: transparent; padding: 0; font-weight: 500; color: #000; }
-            .row-percent { color: #000; }
+            .row-percent { color: #000 !important; }
 
             /* Two Column Footer for Print */
             .footer-row { display: flex !important; flex-direction: row !important; gap: 30px !important; }
@@ -962,58 +1084,109 @@
         const originalContainer = document.getElementById('mainAppContainer');
         const clone = originalContainer.cloneNode(true);
         
+        // 1. Setup Clone Container (Fixed Desktop Width)
+        clone.style.width = '1000px'; 
         clone.style.position = 'absolute';
         clone.style.left = '-9999px';
         clone.style.top = '0';
-        clone.style.width = '1000px'; 
-        clone.style.backgroundColor = '#ffffff';
-        clone.style.color = '#2c3e50';
-        clone.style.padding = '50px';
+        clone.style.backgroundColor = '#ffffff'; 
+        clone.style.color = '#2c3e50'; // Force dark text
+        clone.style.padding = '60px'; // Generous padding for professional look
         clone.classList.remove('container'); 
 
+        // 2. Remove Interactive Elements
         const buttons = clone.querySelector('.buttons-row');
         if(buttons) buttons.remove();
+        
         const themeToggle = clone.querySelector('.header-actions');
         if(themeToggle) themeToggle.remove();
         
-        // ---- CLEAN IMAGE LOGIC ----
-        // 1. Remove empty rows
-        const rows = clone.querySelectorAll('#tableBody tr');
-        rows.forEach(row => {
-             const max = row.querySelector('.max').value;
-             if(!max) row.remove();
-        });
-
-        // 2. CHECK IF GOAL CALCULATOR IS ACTIVE
-        // Use the wrapper ID to check for the class
+        // 3. Goal Section Logic
         const goalWrapper = clone.querySelector('#goalSectionWrapper');
         if (!goalWrapper.classList.contains('visible-in-export')) {
-            // Remove the entire goal wrapper to free up space
+            // If goal calc wasn't used, remove it completely
             goalWrapper.remove();
+            
+            // Fix layout: If goal is gone, expand result box or align right
+            const footer = clone.querySelector('.footer-row');
+            if(footer) {
+                footer.style.justifyContent = 'flex-end';
+                const resultBoxWrapper = clone.querySelector('.result-box-wrapper');
+                if(resultBoxWrapper) resultBoxWrapper.style.flex = '0 0 400px'; // Slightly wider result box
+            }
         } else {
-            // If active, hide the inputs/buttons inside it
+            // If goal IS used, just remove the inputs/buttons inside it
             const goalControls = clone.querySelector('.goal-controls');
             if(goalControls) goalControls.remove();
+            
+            // Ensure styling is correct for static view
+            const goalSection = clone.querySelector('#goalSection');
+            goalSection.style.backgroundColor = '#f0fdf4'; // Light mint
+            goalSection.style.borderLeft = '6px solid #1abc9c';
+            goalSection.style.color = '#000';
         }
 
-        // 3. Ensure inputs are visible as text
-        const origInputs = originalContainer.querySelectorAll('input');
-        const cloneInputs = clone.querySelectorAll('input');
+        // 4. Clean Table Rows
+        const rows = clone.querySelectorAll('#tableBody tr');
+        rows.forEach(row => {
+             // Find original row to check values
+             const origRowIndex = Array.from(row.parentNode.children).indexOf(row);
+             const origRow = document.querySelectorAll('#tableBody tr')[origRowIndex];
+             const maxVal = origRow.querySelector('.max').value;
+             
+             // Remove empty rows
+             if(!maxVal) {
+                 row.remove();
+             } else {
+                 // Remove Delete Button column
+                 const delBtn = row.querySelector('.delete-btn');
+                 if(delBtn) delBtn.parentElement.remove();
+             }
+        });
+        // Remove header for delete column
+        const headers = clone.querySelectorAll('th');
+        if(headers.length > 0) headers[headers.length-1].remove();
+
+
+        // 5. TEXT REPLACEMENT (Crucial Step)
+        // Convert all inputs to static text div for perfect rendering
+        const origInputs = originalContainer.querySelectorAll('input, select');
+        const cloneInputs = clone.querySelectorAll('input, select');
+        
         origInputs.forEach((input, i) => {
             if(cloneInputs[i]) {
-                cloneInputs[i].value = input.value;
-                cloneInputs[i].style.border = 'none';
-                cloneInputs[i].style.background = 'transparent';
-                cloneInputs[i].style.color = '#2c3e50';
-                cloneInputs[i].style.padding = '0';
+                const value = input.value;
+                const textSpan = document.createElement('div');
+                textSpan.textContent = value;
+                
+                // Copy styles for font size/weight alignment
+                textSpan.style.fontFamily = 'inherit';
+                
+                if (input.classList.contains('course-name-input')) {
+                    textSpan.style.fontSize = '32px';
+                    textSpan.style.fontWeight = '800';
+                    textSpan.style.marginBottom = '10px';
+                    textSpan.style.color = '#2c3e50';
+                } else if (input.classList.contains('category-input')) {
+                    textSpan.style.fontSize = '14px';
+                    textSpan.style.fontWeight = '500';
+                    textSpan.style.textAlign = 'left';
+                } else {
+                    textSpan.style.fontSize = '14px';
+                    textSpan.style.textAlign = 'right';
+                }
+
+                // Replace input with text node
+                cloneInputs[i].parentNode.replaceChild(textSpan, cloneInputs[i]);
             }
         });
 
         document.body.appendChild(clone);
         
         html2canvas(clone, {
+            scale: 2, // Retina quality
             backgroundColor: '#ffffff',
-            scale: 2
+            useCORS: true
         }).then(canvas => {
             const link = document.createElement('a');
             const name = document.getElementById('courseNameInput').value || "grade_report";
@@ -1153,7 +1326,8 @@
         const target = parseFloat(document.getElementById('targetGrade').value);
         const selectedIndex = document.getElementById('goalCategorySelect').value;
         const resultDiv = document.getElementById('goalResult');
-        const goalSection = document.getElementById('goalSection');
+        const goalSection = document.getElementById('goalSection'); // Ensure we target the element, not the wrapper here for inner logic, but wrapper for export.
+        const goalSectionWrapper = document.getElementById('goalSectionWrapper');
 
         if (isNaN(target)) { resultDiv.innerHTML = "Please enter a valid target grade percentage."; return; }
         if (selectedIndex === "") { resultDiv.innerHTML = "Please select a category to calculate for."; return; }
@@ -1184,7 +1358,7 @@
         resultDiv.innerHTML = `To get a <strong>${target}%</strong> overall, you need:<br><span style="font-size: 1.2em; color: var(--accent-hover);">${pointsNeeded.toFixed(2)} / ${targetMax} points (${percentageNeeded.toFixed(2)}%)</span><br>on <em>${targetName}</em>.`;
         
         // --- VISIBILITY TOGGLE FOR EXPORT ---
-        document.getElementById('goalSectionWrapper').classList.add('visible-in-export');
+        goalSectionWrapper.classList.add('visible-in-export');
 
         // --- NEW FEATURE: Auto-fill the table box ---
         const targetRow = rows[selectedIndex];
