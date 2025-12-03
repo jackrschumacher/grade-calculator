@@ -440,45 +440,9 @@
         @media (max-width: 768px) {
             body { padding: 15px; }
             .container { padding: 20px; }
-            
-            /* Responsive Header */
             .header-row { flex-direction: column; gap: 15px; }
             .header-actions { width: 100%; justify-content: space-between; }
             .course-name-input { font-size: 1.5rem; max-width: 100%; }
-
-            /* Switch Table to Cards */
-            thead { display: none; }
-            table, tbody, tr, td { display: block; width: 100%; }
-            tr {
-                margin-bottom: 20px;
-                background: var(--container-bg);
-                border: 1px solid var(--border-color);
-                border-radius: 8px;
-                padding: 20px;
-                box-shadow: 0 4px 10px rgba(0,0,0,0.03);
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 15px;
-            }
-            /* Category Name (Full Width) */
-            td:nth-of-type(1) { grid-column: 1 / -1; padding: 0; }
-            /* Points (Left & Right) */
-            td:nth-of-type(2) { padding: 0; }
-            td:nth-of-type(3) { padding: 0; }
-            /* Weight (Left) */
-            td:nth-of-type(5) { padding: 0; }
-            /* Percent (Right, Text Only) */
-            td:nth-of-type(4) { padding: 0; display: flex; align-items: center; justify-content: flex-end; }
-            /* Delete (Full Width Bottom) */
-            td:nth-of-type(6) { grid-column: 1 / -1; padding: 0; margin-top: 10px; }
-            
-            /* Labels for Context */
-            td:nth-of-type(2)::before { content: "Points Earned"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
-            td:nth-of-type(3)::before { content: "Total Points"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
-            td:nth-of-type(5)::before { content: "Weight (%)"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
-            td:nth-of-type(1)::before { content: "Category Name"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
-
-            .delete-btn { width: 100%; padding: 10px; }
 
             .footer-row { 
                 flex-direction: column-reverse; /* Result box on top of Goal on Mobile */
@@ -498,6 +462,32 @@
             .goal-input-group { width: 100%; }
             .calc-goal-btn { margin-top: 10px; }
             input, select, textarea { font-size: 16px !important; }
+            
+            /* Switch Table to Cards */
+            thead { display: none; }
+            table, tbody, tr, td { display: block; width: 100%; }
+            tr {
+                margin-bottom: 20px;
+                background: var(--container-bg);
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                padding: 20px;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 15px;
+            }
+            td:nth-of-type(1) { grid-column: 1 / -1; padding: 0; }
+            td:nth-of-type(2) { padding: 0; }
+            td:nth-of-type(3) { padding: 0; }
+            td:nth-of-type(5) { padding: 0; }
+            td:nth-of-type(4) { padding: 0; display: flex; align-items: center; justify-content: flex-end; }
+            td:nth-of-type(6) { grid-column: 1 / -1; padding: 0; margin-top: 10px; }
+            td:nth-of-type(2)::before { content: "Points Earned"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
+            td:nth-of-type(3)::before { content: "Total Points"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
+            td:nth-of-type(5)::before { content: "Weight (%)"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
+            td:nth-of-type(1)::before { content: "Category Name"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
+            .delete-btn { width: 100%; padding: 10px; }
         }
 
         /* --- PRINT / PDF EXPORT STYLES --- */
@@ -651,7 +641,7 @@
     <div class="header-row">
         <div>
             <!-- Course Name Input -->
-            <input type="text" id="courseNameInput" class="course-name-input" placeholder="Enter Course Name" oninput="updatePageTitle(this)">
+            <input type="text" id="courseNameInput" class="course-name-input" placeholder="Enter Course Name" oninput="updatePageTitle(this); saveData()">
             <h2>Course Grade Report</h2>
             <div class="report-date" id="reportDate"></div>
         </div>
@@ -696,7 +686,7 @@
                 <div class="goal-controls">
                     <div class="goal-input-group">
                         <label>Target Grade (%)</label>
-                        <input type="number" id="targetGrade" placeholder="90">
+                        <input type="number" id="targetGrade" placeholder="90" oninput="saveData()">
                     </div>
                     <div class="goal-input-group">
                         <label>Calculate For Category</label>
@@ -856,7 +846,8 @@
     let sessionMaxPoints = 0;
 
     window.recordCalculationStat = function(currentTotalPoints, categoryCount, currentGPA) {
-        if (isLocalhost()) return;
+        // Debug mode: allow localhost, log attempts
+        // if (isLocalhost()) return; // COMMENTED OUT FOR DEBUGGING
 
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
@@ -888,16 +879,17 @@
 
                 update(ref(db), updates);
             }
-        }, 3000);
+        }, 1000); // Shortened to 1s for easier testing
     };
 
     window.recordExportStat = function() {
         window.print();
-        if (isLocalhost()) return;
+        // if (isLocalhost()) return; // COMMENTED OUT FOR DEBUGGING
         const monthKey = getMonthKey();
         const updates = {};
         updates['stats/global/reports_exported'] = increment(1);
         updates[`stats/monthly/${monthKey}/reports_exported`] = increment(1);
+        
         update(ref(db), updates);
     };
 
@@ -1220,6 +1212,71 @@
         if (statsModal.style.display === 'flex') { if(typeof window.loadDashboardStats === 'function') window.loadDashboardStats(); }
     }
 
+    /* --- LOCAL STORAGE LOGIC --- */
+    function saveData() {
+        const data = {
+            courseName: document.getElementById('courseNameInput').value,
+            targetGrade: document.getElementById('targetGrade').value,
+            rows: []
+        };
+        
+        const rows = document.querySelectorAll('#tableBody tr');
+        rows.forEach(row => {
+            data.rows.push({
+                name: row.querySelector('.category-input').value,
+                earned: row.querySelector('.earned').value,
+                max: row.querySelector('.max').value,
+                weight: row.querySelector('.weight').value
+            });
+        });
+        
+        localStorage.setItem('gradeData', JSON.stringify(data));
+    }
+
+    function loadData() {
+        const saved = localStorage.getItem('gradeData');
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                document.getElementById('courseNameInput').value = data.courseName || '';
+                updatePageTitle(document.getElementById('courseNameInput'));
+                
+                if (data.targetGrade) document.getElementById('targetGrade').value = data.targetGrade;
+                
+                const tableBody = document.getElementById('tableBody');
+                tableBody.innerHTML = ''; // Clear default rows
+                
+                if (data.rows && data.rows.length > 0) {
+                    data.rows.forEach(rowData => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td><input type="text" class="category-input" placeholder="Category Name" onchange="updateGoalDropdown()" oninput="saveData()" value="${rowData.name || ''}"></td>
+                            <td><input type="text" class="num-input earned" placeholder="0" oninput="calculate(); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)" value="${rowData.earned || ''}"></td>
+                            <td><input type="text" class="num-input max" placeholder="0" oninput="calculate(); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)" value="${rowData.max || ''}"></td>
+                            <td class="row-percent">0.00%</td>
+                            <td><input type="number" class="num-input weight" placeholder="0" oninput="calculate(); saveData()" value="${rowData.weight || ''}"></td>
+                            <td><button class="delete-btn" onclick="removeRow(this)">×</button></td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                } else {
+                     // Fallback if rows empty
+                     addRow(); addRow(); addRow();
+                }
+                
+                calculate();
+                updateGoalDropdown();
+            } catch (e) {
+                console.error("Error loading data", e);
+                // Fallback
+                initCalculator();
+            }
+        } else {
+            // First time load
+            initCalculator();
+        }
+    }
+
     /* --- CALCULATOR LOGIC --- */
     const tableBody = document.getElementById('tableBody');
     const finalGradeDisplay = document.getElementById('finalGrade');
@@ -1248,17 +1305,32 @@
     function updatePageTitle(input) {
         const val = input.value.trim();
         document.title = val ? val : "Grade Calculator";
+        saveData(); // Save on title change
     }
 
-    function initCalculator() { addRow(); addRow(); addRow(); calculate(); updateGoalDropdown(); }
+    // initCalculator is now replaced by loadData() for initialization
+    function initCalculator() { 
+        const tableBody = document.getElementById('tableBody');
+        if (tableBody.children.length === 0) {
+             addRow(); addRow(); addRow(); 
+        }
+        calculate(); 
+        updateGoalDropdown(); 
+    }
 
     function addRow() {
         const row = document.createElement('tr');
-        row.innerHTML = `<td><input type="text" class="category-input" placeholder="Category Name" onchange="updateGoalDropdown()"></td><td><input type="text" class="num-input earned" placeholder="0" oninput="calculate()" onfocus="handleFocus(this)" onblur="handleBlur(this)"></td><td><input type="text" class="num-input max" placeholder="0" oninput="calculate()" onfocus="handleFocus(this)" onblur="handleBlur(this)"></td><td class="row-percent">0.00%</td><td><input type="number" class="num-input weight" placeholder="0" oninput="calculate()"></td><td><button class="delete-btn" onclick="removeRow(this)">×</button></td>`;
+        row.innerHTML = `<td><input type="text" class="category-input" placeholder="Category Name" onchange="updateGoalDropdown()" oninput="saveData()"></td><td><input type="text" class="num-input earned" placeholder="0" oninput="calculate(); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)"></td><td><input type="text" class="num-input max" placeholder="0" oninput="calculate(); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)"></td><td class="row-percent">0.00%</td><td><input type="number" class="num-input weight" placeholder="0" oninput="calculate(); saveData()"></td><td><button class="delete-btn" onclick="removeRow(this)">×</button></td>`;
         tableBody.appendChild(row);
+        saveData();
     }
 
-    function removeRow(btn) { btn.closest('tr').remove(); calculate(); updateGoalDropdown(); }
+    function removeRow(btn) { 
+        btn.closest('tr').remove(); 
+        calculate(); 
+        updateGoalDropdown(); 
+        saveData();
+    }
 
     function calculate() {
         let totalWeightedScore = 0, totalWeight = 0, totalMaxPointsForStats = 0, activeRows = 0, completeRows = 0;
@@ -1310,7 +1382,9 @@
     function updateGoalDropdown() {
         const select = document.getElementById('goalCategorySelect');
         const rows = document.querySelectorAll('#tableBody tr');
+        // Preserve selection if possible
         const currentVal = select.value;
+        
         select.innerHTML = '<option value="">Select a category...</option>';
         rows.forEach((row, index) => {
             const nameInput = row.querySelector('.category-input').value;
@@ -1319,7 +1393,11 @@
             option.value = index; option.text = label;
             select.appendChild(option);
         });
-        select.value = currentVal;
+        
+        // Restore selection if index still valid
+        if (currentVal !== "" && currentVal < rows.length) {
+            select.value = currentVal;
+        }
     }
 
     function calculateGoal() {
@@ -1331,6 +1409,8 @@
 
         if (isNaN(target)) { resultDiv.innerHTML = "Please enter a valid target grade percentage."; return; }
         if (selectedIndex === "") { resultDiv.innerHTML = "Please select a category to calculate for."; return; }
+        
+        saveData(); // Save goal params
 
         let sumOfOthers = 0, targetMax = 0, targetWeight = 0, targetName = "";
         const rows = document.querySelectorAll('#tableBody tr');
@@ -1369,8 +1449,10 @@
                 earnedInput.style.transition = "background-color 0.3s";
                 earnedInput.style.backgroundColor = "var(--mint-bg)";
                 setTimeout(() => { earnedInput.style.backgroundColor = ""; }, 1000);
+                saveData(); // Save the auto-filled value
             } else if (earnedInput && confirm(`Update ${targetName} score to ${pointsNeeded.toFixed(2)}?`)) {
                  earnedInput.value = pointsNeeded.toFixed(2);
+                 saveData(); // Save the updated value
             }
         }
         calculate(); // Trigger stats
@@ -1388,12 +1470,14 @@
             document.getElementById('goalSectionWrapper').classList.remove('visible-in-export');
             
             updatePageTitle({value: ''}); 
+            localStorage.removeItem('gradeData');
             initCalculator();
         }
     }
 
     initTheme();
-    initCalculator();
+    // initCalculator(); // Replaced by loadData()
+    loadData();
 </script>
 
 </body>
