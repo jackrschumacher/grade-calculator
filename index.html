@@ -494,6 +494,7 @@
                 border-radius: 4px !important;
                 box-sizing: border-box !important;
                 margin-top: 0 !important;
+                clear: none !important;
             }
             /* Hide controls inside goal section during print */
             .goal-controls {
@@ -609,17 +610,20 @@
                 text-align: right !important; 
             }
             
-            /* Footer Layout - Using a cleaner Float approach to ensure compatibility */
+            /* Footer Layout - Force controls to act as the right-hand column container */
             .controls {
                 display: block !important; 
                 margin-top: 0 !important;
-                overflow: hidden; /* Clear floats */
+                float: right !important; /* Move Controls to the RIGHT */
+                width: 40% !important;   /* Take up 40% width */
+                clear: none !important;
             }
             
             /* Right Side: Result Box */
             .result-box { 
-                float: right !important; 
-                width: 40% !important; 
+                /* Since controls is floated right, result box just fills it */
+                float: none !important; 
+                width: 100% !important; 
                 background-color: #fff !important; 
                 border: 2px solid #000 !important; 
                 color: #000 !important; 
