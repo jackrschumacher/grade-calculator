@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Grade Calculator</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <!-- Chart.js for the Dashboard -->
@@ -164,10 +164,18 @@
         .stats-btn { font-size: 14px; font-weight: 600; }
 
         /* --- TABLE --- */
+        /* Wrapper for mobile scrolling */
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
+            margin-bottom: 20px;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            min-width: 600px; /* Force minimum width to prevent squishing */
         }
 
         th {
@@ -200,7 +208,7 @@
         /* Update number inputs to support text (math expressions) */
         input[type="number"] { text-align: right; }
         .num-input { text-align: right; }
-        .category-input { width: 200px; }
+        .category-input { width: 100%; } /* Flexible width */
         .num-input { width: 80px; }
         
         .row-percent {
@@ -217,7 +225,7 @@
             margin-top: 20px;
         }
 
-        .buttons-left { display: flex; gap: 10px; }
+        .buttons-left { display: flex; gap: 10px; flex-wrap: wrap; }
 
         button.btn-std {
             border: none;
@@ -466,6 +474,47 @@
         }
         .modal-close-btn:hover { background-color: var(--th-bg); }
 
+        /* --- MOBILE LAYOUT OPTIMIZATIONS --- */
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .container { padding: 15px; }
+            
+            /* Responsive Header */
+            .header-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            .header-actions { width: 100%; justify-content: space-between; }
+            .course-name-input { font-size: 1.5rem; }
+
+            /* Grid Layout for Buttons */
+            .controls { flex-direction: column; gap: 20px; }
+            .buttons-left {
+                width: 100%;
+                display: grid;
+                grid-template-columns: 1fr 1fr; /* 2x2 Grid */
+                gap: 10px;
+            }
+            button.btn-std { 
+                width: 100%; 
+                padding: 12px 10px; /* Taller tap target */
+                font-size: 14px;
+            }
+
+            /* Full width result box */
+            .result-box { width: 100%; text-align: center; }
+            .final-grade { font-size: 2rem; }
+
+            /* Stack Goal Calculator */
+            .goal-controls { flex-direction: column; align-items: stretch; }
+            .goal-input-group, #goalCategorySelect, #targetGrade { width: 100% !important; }
+            .calc-goal-btn { margin-top: 10px; padding: 12px; }
+
+            /* Prevent Font Zoom on iOS */
+            input, select, textarea { font-size: 16px !important; }
+        }
+
         /* --- PRINT / PDF EXPORT STYLES --- */
         @media print {
             /* General Print Reset */
@@ -668,21 +717,23 @@
         </div>
     </div>
     
-    <table id="gradeTable">
-        <thead>
-            <tr>
-                <th>Category Name</th>
-                <th>Points Earned</th>
-                <th>Total Points</th>
-                <th>Current %</th>
-                <th>Weight (%)</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody id="tableBody">
-            <!-- Rows injected by JS -->
-        </tbody>
-    </table>
+    <div class="table-wrapper">
+        <table id="gradeTable">
+            <thead>
+                <tr>
+                    <th>Category Name</th>
+                    <th>Points Earned</th>
+                    <th>Total Points</th>
+                    <th>Current %</th>
+                    <th>Weight (%)</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <!-- Rows injected by JS -->
+            </tbody>
+        </table>
+    </div>
 
     <div class="controls">
         <div class="buttons-left">
@@ -719,6 +770,7 @@
     </div>
 </div>
 
+<!-- ... (Rest of Stats Modal and Scripts remain identical to previous versions) ... -->
 <!-- STATS MODAL DASHBOARD -->
 <div class="modal-overlay" id="statsModal">
     <div class="modal-content">
@@ -1224,8 +1276,10 @@
         
         window.location.href = `mailto:?subject=${subject}&body=${bodyEnc}`;
         
-        btn.innerText = originalText;
-        btn.disabled = false;
+        setTimeout(() => {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }, 1000);
     }
 
     function calculate() {
