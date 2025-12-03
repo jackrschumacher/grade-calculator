@@ -430,11 +430,26 @@
         
         .text-green { color: #10b981; } .text-orange { color: #f59e0b; } .text-purple { color: #8b5cf6; } .text-blue { color: #3498db; }
         .chart-container { background-color: var(--card-bg); padding: 20px; border-radius: 8px; border: 1px solid var(--modal-border); height: 350px; margin-bottom: 30px; transition: background-color 0.3s; }
-        .history-table-container { background-color: var(--card-bg); border-radius: 8px; border: 1px solid var(--modal-border); padding: 20px; transition: background-color 0.3s; }
-        .history-table { width: 100%; border-collapse: collapse; color: var(--modal-text); }
+        
+        /* HISTORY TABLE IMPROVEMENTS (MOBILE) */
+        .history-table-container { 
+            background-color: var(--card-bg); 
+            border-radius: 8px; 
+            border: 1px solid var(--modal-border); 
+            padding: 20px; 
+            transition: background-color 0.3s; 
+            overflow-x: auto; /* Enable scrolling for mobile */
+        }
+        .history-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            color: var(--modal-text); 
+            min-width: 500px; /* Force min width so columns don't squish */
+        }
         .history-table th { text-align: left; padding: 10px; border-bottom: 1px solid var(--modal-border); color: var(--accent-color); font-size: 14px; }
         .history-table td { padding: 12px 10px; border-bottom: 1px solid var(--modal-border); font-size: 14px; }
         .history-table tr:last-child td { border-bottom: none; }
+        
         .modal-footer { margin-top: 20px; display: flex; justify-content: center; }
         .modal-close-btn { background-color: var(--card-bg); color: var(--modal-text); border: 1px solid var(--modal-border); padding: 10px 30px; border-radius: 6px; cursor: pointer; transition: background-color 0.2s; }
         .modal-close-btn:hover { background-color: var(--th-bg); }
@@ -448,7 +463,7 @@
             .course-name-input { font-size: 1.5rem; max-width: 100%; }
 
             .footer-row { 
-                flex-direction: column-reverse; /* Result box on top of Goal on Mobile */
+                flex-direction: column-reverse; 
                 gap: 30px; 
             }
             .result-box-wrapper { flex: auto; width: 100%; }
@@ -459,17 +474,24 @@
             .final-grade { font-size: 2rem; }
 
             .buttons-row { display: grid; grid-template-columns: 1fr 1fr; }
-            .buttons-row button:last-child { grid-column: span 2; } /* Share button full width */
+            .buttons-row button:last-child { grid-column: span 2; } 
 
             .goal-controls { flex-direction: column; align-items: stretch; }
             .goal-input-group { width: 100%; }
             .calc-goal-btn { margin-top: 10px; }
             input, select, textarea { font-size: 16px !important; }
             
+            /* Stats Modal specific for Mobile */
+            .modal-content { padding: 15px; width: 95%; }
+            .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .stat-card { padding: 15px; }
+            .stat-card h3 { font-size: 24px; }
+            .history-table th, .history-table td { font-size: 12px; padding: 10px 5px; white-space: nowrap; }
+            
             /* Switch Table to Cards */
             thead { display: none; }
             table, tbody, tr, td { display: block; width: 100%; }
-            tr {
+            #gradeTable tr {
                 margin-bottom: 20px;
                 background: var(--container-bg);
                 border: 1px solid var(--border-color);
@@ -480,16 +502,22 @@
                 grid-template-columns: 1fr 1fr;
                 gap: 15px;
             }
+            /* Fix for history table inside modal (don't turn into cards) */
+            .history-table tr { display: table-row; }
+            .history-table td { display: table-cell; }
+            
             td:nth-of-type(1) { grid-column: 1 / -1; padding: 0; }
             td:nth-of-type(2) { padding: 0; }
             td:nth-of-type(3) { padding: 0; }
             td:nth-of-type(5) { padding: 0; }
             td:nth-of-type(4) { padding: 0; display: flex; align-items: center; justify-content: flex-end; }
             td:nth-of-type(6) { grid-column: 1 / -1; padding: 0; margin-top: 10px; }
-            td:nth-of-type(2)::before { content: "Points Earned"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
-            td:nth-of-type(3)::before { content: "Total Points"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
-            td:nth-of-type(5)::before { content: "Weight (%)"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
-            td:nth-of-type(1)::before { content: "Category Name"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
+            
+            /* Context Labels for Grade Table */
+            #gradeTable td:nth-of-type(2)::before { content: "Points Earned"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
+            #gradeTable td:nth-of-type(3)::before { content: "Total Points"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
+            #gradeTable td:nth-of-type(5)::before { content: "Weight (%)"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
+            #gradeTable td:nth-of-type(1)::before { content: "Category Name"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
             .delete-btn { width: 100%; padding: 10px; }
         }
 
@@ -852,7 +880,7 @@
         // Debug mode: allow localhost, log attempts
         // if (isLocalhost()) return; // COMMENTED OUT FOR DEBUGGING
 
-        console.log("📝 Attempting to record stats...", {currentTotalPoints, categoryCount, currentGPA});
+        // console.log("📝 Attempting to record stats...", {currentTotalPoints, categoryCount, currentGPA});
 
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
@@ -897,9 +925,7 @@
         updates['stats/global/reports_exported'] = increment(1);
         updates[`stats/monthly/${monthKey}/reports_exported`] = increment(1);
         
-        update(ref(db), updates)
-        .then(() => console.log("✅ Export stat saved!"))
-        .catch((error) => console.error("❌ Export Error:", error));
+        update(ref(db), updates);
     };
 
     window.recordExportStat = function() {
@@ -1318,9 +1344,11 @@
 
     function parseScore(input) {
         if (!input) return 0;
+        // Clean string: allow digits, dot, operators +, -, *, /, (, )
         const clean = input.toString().replace(/[^0-9\.\+\-\*\/\(\)]/g, '');
         if (!clean) return 0;
         try {
+            // Check if it creates a valid number
             const result = new Function('return ' + clean)();
             return isFinite(result) ? result : 0;
         } catch (e) {
