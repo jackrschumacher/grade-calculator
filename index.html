@@ -6,6 +6,8 @@
     <title>Grade Calculator</title>
     <!-- Chart.js for the Dashboard -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- html2canvas for Image Export -->
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         /* --- CSS VARIABLES (THEMING) --- */
         :root {
@@ -30,7 +32,7 @@
             --goal-border: #1abc9c;
             --shadow: 0 4px 15px rgba(0,0,0,0.1);
 
-            /* Stats Modal Light Theme */
+            /* Modal Styling */
             --modal-bg: #ffffff;
             --modal-text: #333333;
             --modal-border: #e0e0e0;
@@ -62,7 +64,7 @@
             --goal-border: #16a085;
             --shadow: 0 4px 15px rgba(0,0,0,0.5);
 
-            /* Stats Modal Dark Theme */
+            /* Modal Styling Dark */
             --modal-bg: #1a1b26;
             --modal-text: #a9b1d6;
             --modal-border: #2f334d;
@@ -72,7 +74,7 @@
             --close-btn-hover: #ffffff;
         }
 
-        /* FIX: Apply border-box globally to prevent padding from expanding widths */
+        /* FIX: Apply border-box globally */
         *, *::before, *::after {
             box-sizing: border-box;
         }
@@ -163,18 +165,17 @@
         .stats-btn { font-size: 14px; font-weight: 600; }
 
         /* --- TABLE --- */
-        /* Wrapper for mobile scrolling */
         .table-wrapper {
             width: 100%;
             overflow-x: auto;
-            -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
+            -webkit-overflow-scrolling: touch;
             margin-bottom: 20px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 600px; /* Force minimum width to prevent squishing */
+            min-width: 600px;
         }
 
         th {
@@ -200,14 +201,12 @@
             color: var(--input-text);
             border-radius: 4px;
             width: 100%;
-            /* box-sizing: border-box; handled by global rule now */
             font-size: 14px;
         }
 
-        /* Update number inputs to support text (math expressions) */
         input[type="number"] { text-align: right; }
         .num-input { text-align: right; }
-        .category-input { width: 100%; } /* Flexible width */
+        .category-input { width: 100%; } 
         .num-input { width: 80px; }
         
         .row-percent {
@@ -234,16 +233,17 @@
             font-size: 14px;
             transition: background 0.2s;
             color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
         }
 
         button.add-btn { background-color: var(--accent-color); }
         button.add-btn:hover { background-color: var(--accent-hover); }
 
-        button.export-btn { background-color: #27ae60; }
-        button.export-btn:hover { background-color: #2ecc71; }
-        
-        button.email-btn { background-color: #8e44ad; }
-        button.email-btn:hover { background-color: #9b59b6; }
+        button.share-btn { background-color: #27ae60; }
+        button.share-btn:hover { background-color: #2ecc71; }
 
         button.clear-btn { background-color: #7f8c8d; }
         button.clear-btn:hover { background-color: #95a5a6; }
@@ -281,21 +281,9 @@
             padding-top: 10px;
             border-top: 1px solid var(--border-color);
         }
-        .mini-stat {
-            text-align: center;
-        }
-        .mini-stat span {
-            display: block;
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-bottom: 2px;
-        }
-        .mini-stat div {
-            font-size: 18px;
-            font-weight: bold;
-            color: var(--accent-color);
-            margin-bottom: 0 !important;
-        }
+        .mini-stat { text-align: center; }
+        .mini-stat span { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 2px; }
+        .mini-stat div { font-size: 18px; font-weight: bold; color: var(--accent-color); margin-bottom: 0 !important; }
 
         /* --- GOAL CALCULATOR SECTION --- */
         .goal-section {
@@ -305,431 +293,116 @@
             border-left: 5px solid var(--goal-border);
             border-radius: 4px;
         }
-        
-        .goal-section h3 {
-            margin-top: 0;
-            color: var(--text-main);
-            font-size: 18px;
-        }
+        .goal-section h3 { margin-top: 0; color: var(--text-main); font-size: 18px; }
+        .goal-controls { display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; }
+        .goal-input-group { display: flex; flex-direction: column; }
+        .goal-input-group label { font-size: 12px; margin-bottom: 5px; color: var(--text-secondary); font-weight: 600; }
+        button.calc-goal-btn { background-color: var(--goal-border); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; height: 35px; }
+        button.calc-goal-btn:hover { opacity: 0.9; }
+        .goal-result { margin-top: 15px; font-weight: bold; color: var(--text-main); font-size: 16px; }
 
-        .goal-controls {
-            display: flex;
+        /* --- EXPORT MENU MODAL --- */
+        .export-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 15px;
-            align-items: flex-end;
-            flex-wrap: wrap;
+            margin-bottom: 20px;
         }
-
-        .goal-input-group {
+        .export-option {
+            background-color: var(--card-bg);
+            border: 1px solid var(--modal-border);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--modal-text);
             display: flex;
             flex-direction: column;
+            align-items: center;
+            gap: 10px;
         }
+        .export-option:hover { background-color: var(--th-bg); transform: translateY(-2px); border-color: var(--accent-color); }
+        .export-icon { font-size: 24px; margin-bottom: 5px; }
+        .export-label { font-weight: 600; font-size: 14px; }
+
+        /* --- STATS DASHBOARD MODAL (Shared Styles) --- */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+        .modal-content { background-color: var(--modal-bg); color: var(--modal-text); width: 90%; max-width: 1000px; border-radius: 12px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; max-height: 90vh; overflow-y: auto; border: 1px solid var(--modal-border); transition: background-color 0.3s, color 0.3s; }
+        .modal-content.small-modal { max-width: 500px; } /* Smaller width for export menu */
         
-        .goal-input-group label {
-            font-size: 12px;
-            margin-bottom: 5px;
-            color: var(--text-secondary);
-            font-weight: 600;
-        }
-
-        button.calc-goal-btn {
-            background-color: var(--goal-border);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            height: 35px;
-        }
-        button.calc-goal-btn:hover { opacity: 0.9; }
-
-        .goal-result {
-            margin-top: 15px;
-            font-weight: bold;
-            color: var(--text-main);
-            font-size: 16px;
-        }
-
-        /* --- STATS DASHBOARD MODAL --- */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            backdrop-filter: blur(5px);
-        }
-
-        .modal-content {
-            background-color: var(--modal-bg);
-            color: var(--modal-text);
-            width: 90%;
-            max-width: 1000px;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            position: relative;
-            max-height: 90vh;
-            overflow-y: auto;
-            border: 1px solid var(--modal-border);
-            transition: background-color 0.3s, color 0.3s;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            border-bottom: 1px solid var(--modal-border);
-            padding-bottom: 15px;
-        }
-
-        .modal-header h2 {
-            color: var(--modal-text);
-            margin: 0;
-            font-size: 24px;
-        }
-
-        .close-modal {
-            background: none;
-            border: none;
-            color: var(--modal-text);
-            opacity: 0.7;
-            font-size: 28px;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid var(--modal-border); padding-bottom: 15px; }
+        .modal-header h2 { color: var(--modal-text); margin: 0; font-size: 24px; }
+        .close-modal { background: none; border: none; color: var(--modal-text); opacity: 0.7; font-size: 28px; cursor: pointer; transition: opacity 0.2s; }
         .close-modal:hover { opacity: 1; color: var(--close-btn-hover); }
 
-        /* Dashboard Cards */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
-            background-color: var(--card-bg);
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-            border: 1px solid var(--modal-border);
-            transition: background-color 0.3s;
-        }
-
-        .stat-card h3 {
-            font-size: 32px;
-            margin: 0 0 5px 0;
-            font-weight: 700;
-        }
-        .stat-card span {
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            opacity: 0.7;
-        }
-
-        /* Colors for cards matching screenshot vibe */
-        .text-green { color: #10b981; }
-        .text-orange { color: #f59e0b; }
-        .text-purple { color: #8b5cf6; }
-        .text-blue { color: #3498db; }
-
-        /* Chart Area */
-        .chart-container {
-            background-color: var(--card-bg);
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid var(--modal-border);
-            height: 350px;
-            margin-bottom: 30px;
-            transition: background-color 0.3s;
-        }
-
-        /* History Table */
-        .history-table-container {
-            background-color: var(--card-bg);
-            border-radius: 8px;
-            border: 1px solid var(--modal-border);
-            padding: 20px;
-            transition: background-color 0.3s;
-        }
-
-        .history-table {
-            width: 100%;
-            border-collapse: collapse;
-            color: var(--modal-text);
-        }
-
-        .history-table th {
-            text-align: left;
-            padding: 10px;
-            border-bottom: 1px solid var(--modal-border);
-            color: var(--accent-color);
-            font-size: 14px;
-        }
-
-        .history-table td {
-            padding: 12px 10px;
-            border-bottom: 1px solid var(--modal-border);
-            font-size: 14px;
-        }
-        .history-table tr:last-child td { border-bottom: none; }
-
-        .modal-footer {
-            margin-top: 20px;
-            display: flex;
-            justify-content: center;
-        }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background-color: var(--card-bg); padding: 20px; border-radius: 8px; text-align: center; border: 1px solid var(--modal-border); transition: background-color 0.3s; }
+        .stat-card h3 { font-size: 32px; margin: 0 0 5px 0; font-weight: 700; }
+        .stat-card span { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; }
         
-        .modal-close-btn {
-            background-color: var(--card-bg);
-            color: var(--modal-text);
-            border: 1px solid var(--modal-border);
-            padding: 10px 30px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
+        .text-green { color: #10b981; } .text-orange { color: #f59e0b; } .text-purple { color: #8b5cf6; } .text-blue { color: #3498db; }
+        .chart-container { background-color: var(--card-bg); padding: 20px; border-radius: 8px; border: 1px solid var(--modal-border); height: 350px; margin-bottom: 30px; transition: background-color 0.3s; }
+        .history-table-container { background-color: var(--card-bg); border-radius: 8px; border: 1px solid var(--modal-border); padding: 20px; transition: background-color 0.3s; }
+        .history-table { width: 100%; border-collapse: collapse; color: var(--modal-text); }
+        .history-table th { text-align: left; padding: 10px; border-bottom: 1px solid var(--modal-border); color: var(--accent-color); font-size: 14px; }
+        .history-table td { padding: 12px 10px; border-bottom: 1px solid var(--modal-border); font-size: 14px; }
+        .history-table tr:last-child td { border-bottom: none; }
+        .modal-footer { margin-top: 20px; display: flex; justify-content: center; }
+        .modal-close-btn { background-color: var(--card-bg); color: var(--modal-text); border: 1px solid var(--modal-border); padding: 10px 30px; border-radius: 6px; cursor: pointer; transition: background-color 0.2s; }
         .modal-close-btn:hover { background-color: var(--th-bg); }
 
         /* --- MOBILE LAYOUT OPTIMIZATIONS --- */
         @media (max-width: 600px) {
             body { padding: 10px; }
             .container { padding: 15px; }
-            
-            /* Responsive Header */
-            .header-row {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 15px;
-            }
+            .header-row { flex-direction: column; align-items: flex-start; gap: 15px; }
             .header-actions { width: 100%; justify-content: space-between; }
             .course-name-input { font-size: 1.5rem; }
-
-            /* Grid Layout for Buttons */
             .controls { flex-direction: column; gap: 20px; }
-            .buttons-left {
-                width: 100%;
-                display: grid;
-                grid-template-columns: 1fr 1fr; /* 2x2 Grid */
-                gap: 10px;
-            }
-            button.btn-std { 
-                width: 100%; 
-                padding: 12px 10px; /* Taller tap target */
-                font-size: 14px;
-            }
-
-            /* Full width result box */
+            .buttons-left { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+            button.btn-std { width: 100%; padding: 12px 10px; font-size: 14px; }
             .result-box { width: 100%; text-align: center; }
-            .gpa-row { justify-content: center; } /* Center GPA on mobile */
+            .gpa-row { justify-content: center; }
             .final-grade { font-size: 2rem; }
-
-            /* Stack Goal Calculator */
             .goal-controls { flex-direction: column; align-items: stretch; }
             .goal-input-group, #goalCategorySelect, #targetGrade { width: 100% !important; }
             .calc-goal-btn { margin-top: 10px; padding: 12px; }
-
-            /* Prevent Font Zoom on iOS */
             input, select, textarea { font-size: 16px !important; }
         }
 
         /* --- PRINT / PDF EXPORT STYLES --- */
         @media print {
-            /* General Print Reset */
-            @page {
-                margin: 0.75in;
-                size: auto;
-            }
-
-            .buttons-left, .delete-btn, .header-actions, th:last-child, td:last-child, .stats-btn, .modal-overlay {
-                display: none !important;
-            }
-
-            /* Only show Goal Section if it has been calculated */
-            .goal-section {
-                display: none; /* Hidden by default in print */
-            }
-            .goal-section.goal-calculated {
-                display: block !important;
-                float: left !important;
-                width: 55% !important;
-                border: 1px solid #ddd !important;
-                border-left: 4px solid #333 !important;
-                background-color: #fafafa !important;
-                color: #000 !important;
-                padding: 15px !important;
-                border-radius: 4px !important;
-                box-sizing: border-box !important;
-                margin-top: 0 !important;
-                clear: none !important;
-            }
-            /* Hide controls inside goal section during print */
-            .goal-controls {
-                display: none !important;
-            }
-            
-            .goal-section h3 {
-                margin-top: 0 !important;
-                font-size: 16px !important;
-                border-bottom: 1px solid #eee;
-                padding-bottom: 8px;
-                margin-bottom: 10px;
-                color: #333 !important;
-            }
-            
-            .goal-result {
-                margin-top: 0 !important;
-                color: #000 !important;
-                font-size: 14px !important;
-                line-height: 1.5 !important;
-            }
-
-            body { 
-                background-color: white !important; 
-                color: #222 !important; 
-                padding: 0 !important; 
-                margin: 0 !important;
-                display: block !important; 
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-            }
-            
-            .container { 
-                box-shadow: none !important; 
-                width: 100% !important;
-                max-width: 100% !important; 
-                padding: 0 !important;
-                border: none !important; 
-                margin: 0 !important; 
-            }
-            
-            /* Header Styling */
-            .header-row { 
-                border-bottom: 3px solid #000 !important; 
-                margin-bottom: 25px !important; 
-                padding-bottom: 10px !important; 
-                display: block !important; 
-            }
-            
+            @page { margin: 0.75in; size: auto; }
+            .buttons-left, .delete-btn, .header-actions, th:last-child, td:last-child, .stats-btn, .modal-overlay { display: none !important; }
+            .goal-section { display: none; }
+            .goal-section.goal-calculated { display: block !important; float: left !important; width: 55% !important; border: 1px solid #ddd !important; border-left: 4px solid #333 !important; background-color: #fafafa !important; color: #000 !important; padding: 15px !important; border-radius: 4px !important; box-sizing: border-box !important; margin-top: 0 !important; clear: none !important; }
+            .goal-controls { display: none !important; }
+            .goal-section h3 { margin-top: 0 !important; font-size: 16px !important; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 10px; color: #333 !important; }
+            .goal-result { margin-top: 0 !important; color: #000 !important; font-size: 14px !important; line-height: 1.5 !important; }
+            body { background-color: white !important; color: #222 !important; padding: 0 !important; margin: 0 !important; display: block !important; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important; }
+            .container { box-shadow: none !important; width: 100% !important; max-width: 100% !important; padding: 0 !important; border: none !important; margin: 0 !important; }
+            .header-row { border-bottom: 3px solid #000 !important; margin-bottom: 25px !important; padding-bottom: 10px !important; display: block !important; }
             h2 { display: none !important; } 
-            
-            .report-date { 
-                display: block !important; 
-                color: #555 !important; 
-                font-size: 14px !important; 
-                margin-top: 5px !important;
-            }
-            
-            .course-name-input {
-                border: none !important;
-                background: transparent !important;
-                font-size: 36px !important;
-                font-weight: 800 !important;
-                color: #000 !important;
-                margin-bottom: 0 !important;
-                padding: 0 !important;
-                width: 100% !important;
-            }
-            .course-name-input::placeholder {
-                color: transparent !important; 
-            }
-            
-            /* Table Styling */
-            table { 
-                width: 100% !important; 
-                border-collapse: collapse !important; 
-                margin-bottom: 30px !important; 
-            }
-            
-            th { 
-                background-color: #f8f9fa !important; 
-                color: #000 !important; 
-                border-bottom: 2px solid #000 !important; 
-                border-top: 1px solid #ddd !important;
-                padding: 12px 8px !important; 
-                text-transform: uppercase !important; 
-                font-size: 11px !important; 
-                font-weight: 700 !important;
-                letter-spacing: 0.5px;
-            }
-            
-            td { 
-                border-bottom: 1px solid #eee !important; 
-                padding: 12px 8px !important; 
-                color: #000 !important; 
-                font-size: 13px !important;
-            }
-            
-            /* Inputs look like Text */
-            input { 
-                border: none !important; 
-                background: transparent !important; 
-                color: #000 !important; 
-                padding: 0 !important; 
-                font-weight: 500; 
-                font-family: inherit !important; 
-                font-size: 13px !important; 
-            }
-            
-            /* Alignments */
-            td:not(:first-child) input, 
-            th:not(:first-child), 
-            .row-percent { 
-                text-align: right !important; 
-            }
-            
-            /* Footer Layout - Force controls to act as the right-hand column container */
-            .controls {
-                display: block !important; 
-                margin-top: 0 !important;
-                float: right !important; /* Move Controls to the RIGHT */
-                width: 40% !important;   /* Take up 40% width */
-                clear: none !important;
-            }
-            
-            /* Right Side: Result Box */
-            .result-box { 
-                /* Since controls is floated right, result box just fills it */
-                float: none !important; 
-                width: 100% !important; 
-                background-color: #fff !important; 
-                border: 2px solid #000 !important; 
-                color: #000 !important; 
-                padding: 20px !important; 
-                border-radius: 6px !important;
-                box-sizing: border-box !important;
-                text-align: right !important;
-                margin-right: 0 !important;
-            }
-            
-            .result-box div { 
-                color: #555 !important; 
-                font-size: 14px !important; 
-                margin-bottom: 5px !important;
-            }
-            
-            .final-grade { 
-                color: #000 !important; 
-                font-size: 36px !important; 
-                margin-top: 10px !important; 
-                font-weight: 800 !important;
-            }
-            
-            /* Hide chart colors in print if needed, but text is forced black */
+            .report-date { display: block !important; color: #555 !important; font-size: 14px !important; margin-top: 5px !important; }
+            .course-name-input { border: none !important; background: transparent !important; font-size: 36px !important; font-weight: 800 !important; color: #000 !important; margin-bottom: 0 !important; padding: 0 !important; width: 100% !important; }
+            .course-name-input::placeholder { color: transparent !important; }
+            table { width: 100% !important; border-collapse: collapse !important; margin-bottom: 30px !important; }
+            th { background-color: #f8f9fa !important; color: #000 !important; border-bottom: 2px solid #000 !important; border-top: 1px solid #ddd !important; padding: 12px 8px !important; text-transform: uppercase !important; font-size: 11px !important; font-weight: 700 !important; letter-spacing: 0.5px; }
+            td { border-bottom: 1px solid #eee !important; padding: 12px 8px !important; color: #000 !important; font-size: 13px !important; }
+            input { border: none !important; background: transparent !important; color: #000 !important; padding: 0 !important; font-weight: 500; font-family: inherit !important; font-size: 13px !important; }
+            td:not(:first-child) input, th:not(:first-child), .row-percent { text-align: right !important; }
+            .controls { display: block !important; margin-top: 0 !important; float: right !important; width: 40% !important; clear: none !important; }
+            .result-box { float: none !important; width: 100% !important; background-color: #fff !important; border: 2px solid #000 !important; color: #000 !important; padding: 20px !important; border-radius: 6px !important; box-sizing: border-box !important; text-align: right !important; margin-right: 0 !important; }
+            .result-box div { color: #555 !important; font-size: 14px !important; margin-bottom: 5px !important; }
+            .final-grade { color: #000 !important; font-size: 36px !important; margin-top: 10px !important; font-weight: 800 !important; }
             .row-percent { color: #000 !important; }
         }
     </style>
 </head>
 <body>
 
-<div class="container">
+<div class="container" id="mainAppContainer">
     <div class="header-row">
         <div>
             <!-- Course Name Input -->
@@ -765,8 +438,8 @@
         <div class="buttons-left">
             <button class="btn-std add-btn" onclick="addRow()">+ Add Category</button>
             <button class="btn-std clear-btn" onclick="clearAll()">Clear</button>
-            <button class="btn-std export-btn" id="exportBtn">Export PDF</button>
-            <button class="btn-std email-btn" onclick="emailReport()">Email Report</button>
+            <!-- REPLACED OLD BUTTONS WITH NEW EXPORT MENU BUTTON -->
+            <button class="btn-std share-btn" onclick="openShareModal()">📤 Export report</button>
         </div>
         
         <div class="result-box">
@@ -774,7 +447,6 @@
             <div>Final Grade:</div>
             <div class="final-grade" id="finalGrade">0.00%</div>
             
-            <!-- NEW GPA SECTION -->
             <div class="gpa-row">
                 <div class="mini-stat">
                     <span>GPA</span>
@@ -808,6 +480,43 @@
     </div>
 </div>
 
+<!-- SHARE MENU MODAL -->
+<div class="modal-overlay" id="shareModal">
+    <div class="modal-content small-modal">
+        <div class="modal-header">
+            <h2>Share / Export</h2>
+            <button class="close-modal" onclick="closeShareModal()">×</button>
+        </div>
+        
+        <div class="export-grid">
+            <div class="export-option" onclick="window.recordExportStat()">
+                <div class="export-icon">📄</div>
+                <div class="export-label">Save as PDF</div>
+            </div>
+            <div class="export-option" onclick="emailReport()">
+                <div class="export-icon">📧</div>
+                <div class="export-label">Email Report</div>
+            </div>
+            <div class="export-option" onclick="copyToClipboard()">
+                <div class="export-icon">📋</div>
+                <div class="export-label">Copy Text</div>
+            </div>
+            <div class="export-option" onclick="downloadImage()">
+                <div class="export-icon">🖼️</div>
+                <div class="export-label">Save Image</div>
+            </div>
+            <div class="export-option" onclick="downloadCSV()">
+                <div class="export-icon">📊</div>
+                <div class="export-label">Download CSV</div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="modal-close-btn" onclick="closeShareModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
 <!-- STATS MODAL DASHBOARD -->
 <div class="modal-overlay" id="statsModal">
     <div class="modal-content">
@@ -829,7 +538,6 @@
                 <h3 class="text-purple" id="dashExports">0</h3>
                 <span>Reports Exported</span>
             </div>
-            <!-- NEW AVERAGE GRADE CARD -->
             <div class="stat-card">
                 <h3 class="text-blue" id="dashAvgGrade">-</h3>
                 <span>Average Grade</span>
@@ -851,9 +559,7 @@
                         <th>Reports Exported</th>
                     </tr>
                 </thead>
-                <tbody id="historyTableBody">
-                    <!-- History rows go here -->
-                </tbody>
+                <tbody id="historyTableBody"></tbody>
             </table>
         </div>
 
@@ -884,24 +590,20 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // --- HELPER: GET CURRENT MONTH KEY (YYYY-MM) ---
     function getMonthKey() {
         const d = new Date();
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     }
 
-    // --- HELPER: CHECK IF LOCALHOST ---
     function isLocalhost() {
         return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     }
 
-    // --- WRITE STATS LOGIC ---
     let debounceTimer;
-    let sessionMaxCategories = 0; // Track max categories for this session
-    let sessionMaxPoints = 0;     // Track max points for this session
+    let sessionMaxCategories = 0; 
+    let sessionMaxPoints = 0;
 
     window.recordCalculationStat = function(currentTotalPoints, categoryCount, currentGPA) {
-        // Prevent recording on localhost
         if (isLocalhost()) return;
 
         clearTimeout(debounceTimer);
@@ -910,50 +612,27 @@
                 const monthKey = getMonthKey();
                 const updates = {};
                 
-                // Calculate unique categories added since last record
                 let categoriesToAdd = 0;
                 if (categoryCount > sessionMaxCategories) {
                     categoriesToAdd = categoryCount - sessionMaxCategories;
                     sessionMaxCategories = categoryCount;
                 }
 
-                // Calculate unique points added since last record
                 let pointsToAdd = 0;
                 if (currentTotalPoints > sessionMaxPoints) {
                     pointsToAdd = currentTotalPoints - sessionMaxPoints;
                     sessionMaxPoints = currentTotalPoints;
                 }
 
-                // Update Global Stats
                 updates['stats/global/grades_calculated'] = increment(1);
+                if (currentGPA >= 0) updates['stats/global/total_gpa_sum'] = increment(currentGPA);
+                if (pointsToAdd > 0) updates['stats/global/total_points'] = increment(pointsToAdd);
+                if (categoriesToAdd > 0) updates['stats/global/total_categories'] = increment(categoriesToAdd);
                 
-                // Track GPA Sum for Average calculation
-                if (currentGPA >= 0) {
-                    updates['stats/global/total_gpa_sum'] = increment(currentGPA);
-                }
-                
-                if (pointsToAdd > 0) {
-                    updates['stats/global/total_points'] = increment(pointsToAdd);
-                }
-                
-                if (categoriesToAdd > 0) {
-                    updates['stats/global/total_categories'] = increment(categoriesToAdd);
-                }
-                
-                // Update Monthly Stats
                 updates[`stats/monthly/${monthKey}/grades_calculated`] = increment(1);
-                
-                if (currentGPA >= 0) {
-                    updates[`stats/monthly/${monthKey}/total_gpa_sum`] = increment(currentGPA);
-                }
-
-                if (pointsToAdd > 0) {
-                    updates[`stats/monthly/${monthKey}/total_points`] = increment(pointsToAdd);
-                }
-                
-                if (categoriesToAdd > 0) {
-                    updates[`stats/monthly/${monthKey}/total_categories`] = increment(categoriesToAdd);
-                }
+                if (currentGPA >= 0) updates[`stats/monthly/${monthKey}/total_gpa_sum`] = increment(currentGPA);
+                if (pointsToAdd > 0) updates[`stats/monthly/${monthKey}/total_points`] = increment(pointsToAdd);
+                if (categoriesToAdd > 0) updates[`stats/monthly/${monthKey}/total_categories`] = increment(categoriesToAdd);
 
                 update(ref(db), updates);
             }
@@ -961,41 +640,22 @@
     };
 
     window.recordExportStat = function() {
-        // Always run window.print() first so the user gets their PDF
         window.print();
-
-        // Prevent recording on localhost
         if (isLocalhost()) return;
-
         const monthKey = getMonthKey();
         const updates = {};
-        
-        // Update Global
         updates['stats/global/reports_exported'] = increment(1);
-        
-        // Update Monthly
         updates[`stats/monthly/${monthKey}/reports_exported`] = increment(1);
-        
         update(ref(db), updates);
     };
 
-    // --- HELPER: CONVERT GPA TO LETTER ---
     function getLetterFromGPA(gpa) {
-        if (gpa >= 4.0) return 'A';
-        if (gpa >= 3.7) return 'A-';
-        if (gpa >= 3.3) return 'B+';
-        if (gpa >= 3.0) return 'B';
-        if (gpa >= 2.7) return 'B-';
-        if (gpa >= 2.3) return 'C+';
-        if (gpa >= 2.0) return 'C';
-        if (gpa >= 1.7) return 'C-';
-        if (gpa >= 1.3) return 'D+';
-        if (gpa >= 1.0) return 'D';
-        if (gpa >= 0.7) return 'D-';
-        return 'F';
+        if (gpa >= 4.0) return 'A'; if (gpa >= 3.7) return 'A-'; if (gpa >= 3.3) return 'B+';
+        if (gpa >= 3.0) return 'B'; if (gpa >= 2.7) return 'B-'; if (gpa >= 2.3) return 'C+';
+        if (gpa >= 2.0) return 'C'; if (gpa >= 1.7) return 'C-'; if (gpa >= 1.3) return 'D+';
+        if (gpa >= 1.0) return 'D'; if (gpa >= 0.7) return 'D-'; return 'F';
     }
 
-    // --- READ STATS FOR DASHBOARD ---
     window.loadDashboardStats = async function() {
         const dbRef = ref(db);
         try {
@@ -1005,12 +665,10 @@
                 const global = data.global || {};
                 const monthly = data.monthly || {};
 
-                // 1. Populate Top Cards
                 document.getElementById('dashGrades').innerText = (global.grades_calculated || 0).toLocaleString();
                 document.getElementById('dashPoints').innerText = (global.total_points || 0).toLocaleString();
                 document.getElementById('dashExports').innerText = (global.reports_exported || 0).toLocaleString();
 
-                // Calculate Average Grade
                 if (global.grades_calculated > 0 && global.total_gpa_sum > 0) {
                     const avgGpa = global.total_gpa_sum / global.grades_calculated;
                     const letter = getLetterFromGPA(avgGpa);
@@ -1019,71 +677,43 @@
                     document.getElementById('dashAvgGrade').innerText = "N/A";
                 }
 
-                // 2. Process Monthly Data for Table and Chart
-                const months = Object.keys(monthly).sort(); // Sorts YYYY-MM correctly
-                const labels = [];
-                const gradeData = [];
-                const pointsData = []; // New array for points
-                const exportData = [];
+                const months = Object.keys(monthly).sort();
+                const labels = [], gradeData = [], pointsData = [], exportData = [];
                 const tbody = document.getElementById('historyTableBody');
                 tbody.innerHTML = '';
 
-                // Iterate backwards for table (newest first), forwards for chart (oldest first)
-                
-                // Chart Data (Oldest -> Newest)
                 months.forEach(m => {
                     labels.push(m);
                     gradeData.push(monthly[m].grades_calculated || 0);
-                    pointsData.push(monthly[m].total_points || 0); // Collect points data
+                    pointsData.push(monthly[m].total_points || 0);
                     exportData.push(monthly[m].reports_exported || 0);
                 });
 
-                // Table Data (Newest -> Oldest)
                 [...months].reverse().forEach(m => {
                     const row = monthly[m];
                     const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${m}</td>
-                        <td class="text-green">${(row.grades_calculated || 0).toLocaleString()}</td>
-                        <td class="text-orange">${(row.total_points || 0).toLocaleString()}</td>
-                        <td class="text-purple">${(row.reports_exported || 0).toLocaleString()}</td>
-                    `;
+                    tr.innerHTML = `<td>${m}</td><td class="text-green">${(row.grades_calculated||0).toLocaleString()}</td><td class="text-orange">${(row.total_points||0).toLocaleString()}</td><td class="text-purple">${(row.reports_exported||0).toLocaleString()}</td>`;
                     tbody.appendChild(tr);
                 });
 
-                // 3. Render Chart with new pointsData
                 renderChart(labels, gradeData, exportData, pointsData);
             }
-        } catch (error) {
-            console.error(error);
-        }
+        } catch (error) { console.error(error); }
     }
-
-    // Bind export button
-    document.getElementById('exportBtn').addEventListener('click', window.recordExportStat);
 </script>
 
 <script>
     // --- UI LOGIC ---
-
     document.getElementById('reportDate').innerText = new Date().toLocaleDateString();
 
     /* --- CHART JS SETUP --- */
     let myChart = null;
-
     function renderChart(labels, gradeData, exportData, pointsData) {
         const ctx = document.getElementById('statsChart').getContext('2d');
-        
-        if (myChart) {
-            myChart.destroy();
-        }
-
-        // Determine Theme Colors
+        if (myChart) myChart.destroy();
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
         const gridColor = isDark ? '#2f334d' : '#e5e5e5';
         const textColor = isDark ? '#a9b1d6' : '#666666';
-
-        // Set global defaults for this chart
         Chart.defaults.color = textColor;
         Chart.defaults.borderColor = gridColor;
 
@@ -1092,112 +722,142 @@
             data: {
                 labels: labels,
                 datasets: [
-                    {
-                        label: 'Grades Calculated',
-                        data: gradeData,
-                        backgroundColor: 'rgba(16, 185, 129, 0.7)', // Green
-                        borderColor: '#10b981',
-                        borderWidth: 1,
-                        yAxisID: 'y',
-                        order: 2
-                    },
-                    {
-                        label: 'Total Points',
-                        data: pointsData,
-                        type: 'line',
-                        borderColor: '#f59e0b', // Orange
-                        backgroundColor: '#f59e0b',
-                        tension: 0.4,
-                        yAxisID: 'y2', // Separate axis
-                        order: 0 // Draw on top
-                    },
-                    {
-                        label: 'Reports Exported',
-                        data: exportData,
-                        type: 'line',
-                        borderColor: '#8b5cf6', // Purple
-                        backgroundColor: '#8b5cf6',
-                        tension: 0.4,
-                        yAxisID: 'y1',
-                        order: 1
-                    }
+                    { label: 'Grades Calculated', data: gradeData, backgroundColor: 'rgba(16, 185, 129, 0.7)', borderColor: '#10b981', borderWidth: 1, yAxisID: 'y', order: 2 },
+                    { label: 'Total Points', data: pointsData, type: 'line', borderColor: '#f59e0b', backgroundColor: '#f59e0b', tension: 0.4, yAxisID: 'y2', order: 0 },
+                    { label: 'Reports Exported', data: exportData, type: 'line', borderColor: '#8b5cf6', backgroundColor: '#8b5cf6', tension: 0.4, yAxisID: 'y1', order: 1 }
                 ]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    mode: 'index',
-                    intersect: false,
-                },
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        labels: { color: textColor }
-                    }
-                },
+                responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { position: 'top', labels: { color: textColor } } },
                 scales: {
-                    x: {
-                        ticks: { color: textColor },
-                        grid: { color: gridColor }
-                    },
-                    y: { // Grades Calculated (Left)
-                        type: 'linear',
-                        display: true,
-                        position: 'left',
-                        title: { display: true, text: 'Grades', color: '#10b981' },
-                        ticks: { color: '#10b981' },
-                        grid: { color: gridColor }
-                    },
-                    y1: { // Reports Exported (Right 1)
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        title: { display: true, text: 'Exports', color: '#8b5cf6' },
-                        ticks: { color: '#8b5cf6' },
-                        grid: { drawOnChartArea: false }
-                    },
-                    y2: { // Total Points (Right 2)
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        title: { display: true, text: 'Points', color: '#f59e0b' },
-                        ticks: { color: '#f59e0b' },
-                        grid: { drawOnChartArea: false }
-                    }
+                    x: { ticks: { color: textColor }, grid: { color: gridColor } },
+                    y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'Grades', color: '#10b981' }, ticks: { color: '#10b981' }, grid: { color: gridColor } },
+                    y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: 'Exports', color: '#8b5cf6' }, ticks: { color: '#8b5cf6' }, grid: { drawOnChartArea: false } },
+                    y2: { type: 'linear', display: true, position: 'right', title: { display: true, text: 'Points', color: '#f59e0b' }, ticks: { color: '#f59e0b' }, grid: { drawOnChartArea: false } }
                 }
             }
         });
     }
 
-    /* --- MODAL LOGIC --- */
-    const modal = document.getElementById('statsModal');
+    /* --- MODAL LOGIC (Stats & Share) --- */
+    const statsModal = document.getElementById('statsModal');
+    const shareModal = document.getElementById('shareModal');
     
     document.getElementById('openStatsBtn').onclick = function() {
-        modal.style.display = 'flex';
-        // Trigger data load
-        if(typeof window.loadDashboardStats === 'function') {
-            window.loadDashboardStats();
-        }
+        statsModal.style.display = 'flex';
+        if(typeof window.loadDashboardStats === 'function') window.loadDashboardStats();
     };
+    function closeStats() { statsModal.style.display = 'none'; }
 
-    window.closeStats = function() {
-        modal.style.display = 'none';
-    };
+    function openShareModal() { shareModal.style.display = 'flex'; }
+    function closeShareModal() { shareModal.style.display = 'none'; }
 
-    // Close on click outside
     window.onclick = function(event) {
-        if (event.target == modal) {
-            closeStats();
-        }
+        if (event.target == statsModal) closeStats();
+        if (event.target == shareModal) closeShareModal();
     };
 
+    /* --- NEW EXPORT FUNCTIONS --- */
+    
+    // Helper: Generate summary text
+    function getSummaryText() {
+        const courseName = document.getElementById('courseNameInput').value || "Course Grade Report";
+        const finalGrade = document.getElementById('finalGrade').innerText;
+        let text = `Course: ${courseName}\nFinal Grade: ${finalGrade}\n\n`;
+        
+        const rows = document.querySelectorAll('#tableBody tr');
+        rows.forEach(row => {
+            const cat = row.querySelector('.category-input').value || "Category";
+            const earned = row.querySelector('.earned').value || 0;
+            const max = row.querySelector('.max').value || 0;
+            const weight = row.querySelector('.weight').value || 0;
+            text += `- ${cat}: ${earned}/${max} (Weight: ${weight}%)\n`;
+        });
+        
+        const goalText = document.getElementById('goalResult').innerText;
+        if (goalText && goalText.trim().length > 0) {
+            const cleanGoal = goalText.replace(/\n+/g, ' ').trim();
+            text += `\nGoal Analysis: ${cleanGoal}`;
+        }
+        return text;
+    }
+
+    function copyToClipboard() {
+        const text = getSummaryText();
+        navigator.clipboard.writeText(text).then(() => {
+            alert("Report copied to clipboard!");
+            closeShareModal();
+        });
+    }
+
+    function emailReport() {
+        const text = getSummaryText();
+        const courseName = document.getElementById('courseNameInput').value || "Course Grade Report";
+        const subject = encodeURIComponent(`${courseName} - Grade Report`);
+        const bodyEnc = encodeURIComponent(text);
+        window.location.href = `mailto:?subject=${subject}&body=${bodyEnc}`;
+        closeShareModal();
+    }
+
+    function downloadCSV() {
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "Category Name,Points Earned,Total Points,Weight (%)\n";
+        
+        const rows = document.querySelectorAll('#tableBody tr');
+        rows.forEach(row => {
+            const cat = row.querySelector('.category-input').value || "";
+            const earned = row.querySelector('.earned').value || 0;
+            const max = row.querySelector('.max').value || 0;
+            const weight = row.querySelector('.weight').value || 0;
+            // Escape commas in category name
+            const safeCat = cat.includes(',') ? `"${cat}"` : cat;
+            csvContent += `${safeCat},${earned},${max},${weight}\n`;
+        });
+        
+        csvContent += `\nFinal Grade,,${document.getElementById('finalGrade').innerText},`;
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        const name = document.getElementById('courseNameInput').value || "grade_report";
+        link.setAttribute("download", `${name}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        closeShareModal();
+    }
+
+    function downloadImage() {
+        // Use html2canvas to capture the main container
+        const container = document.getElementById('mainAppContainer');
+        
+        // Hide buttons temporarily for clean screenshot
+        const controls = document.querySelector('.controls');
+        const btns = controls.querySelector('.buttons-left');
+        const themeBtn = document.querySelector('.header-actions');
+        
+        btns.style.display = 'none';
+        themeBtn.style.display = 'none';
+        
+        html2canvas(container).then(canvas => {
+            // Restore buttons
+            btns.style.display = 'flex';
+            themeBtn.style.display = 'flex';
+            
+            const link = document.createElement('a');
+            const name = document.getElementById('courseNameInput').value || "grade_report";
+            link.download = `${name}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+            closeShareModal();
+        });
+    }
 
     /* --- THEME LOGIC --- */
     function initTheme() {
         const savedTheme = localStorage.getItem('theme');
         const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        
         if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
             document.documentElement.setAttribute('data-theme', 'dark');
             document.getElementById('themeBtn').innerText = '🌙';
@@ -1213,13 +873,7 @@
         document.documentElement.setAttribute('data-theme', newTheme);
         localStorage.setItem('theme', newTheme);
         document.getElementById('themeBtn').innerText = newTheme === 'dark' ? '🌙' : '☀️';
-
-        // Re-render chart if modal is open to update colors
-        if (modal.style.display === 'flex') {
-            if(typeof window.loadDashboardStats === 'function') {
-                window.loadDashboardStats();
-            }
-        }
+        if (statsModal.style.display === 'flex') { if(typeof window.loadDashboardStats === 'function') window.loadDashboardStats(); }
     }
 
     /* --- CALCULATOR LOGIC --- */
@@ -1227,184 +881,56 @@
     const finalGradeDisplay = document.getElementById('finalGrade');
     const weightDisplay = document.getElementById('weightDisplay');
 
-    // Helper to evaluate simple math (e.g. "22+5")
     function parseScore(input) {
         if (!input) return 0;
-        // Clean string: allow digits, dot, operators +, -, *, /, (, )
         const clean = input.toString().replace(/[^0-9\.\+\-\*\/\(\)]/g, '');
         if (!clean) return 0;
         try {
-            // Check if it creates a valid number
             const result = new Function('return ' + clean)();
             return isFinite(result) ? result : 0;
-        } catch (e) {
-            return 0;
-        }
+        } catch (e) { return 0; }
     }
 
-    /* --- INPUT FOCUS/BLUR HANDLERS --- */
-    function handleFocus(input) {
-        // When clicking in, show the raw formula if it exists (e.g. show "22+25" instead of "47")
-        if (input.dataset.raw) {
-            input.value = input.dataset.raw;
-        }
-    }
-
+    function handleFocus(input) { if (input.dataset.raw) input.value = input.dataset.raw; }
     function handleBlur(input) {
-        // When leaving the box, save the formula and show the calculated result
         const rawValue = input.value;
         input.dataset.raw = rawValue;
-        
-        // Only calculate if not empty
         if (rawValue.trim() !== "") {
             const result = parseScore(rawValue);
-            // Update the display to show the result (e.g. "47")
-            // We strip decimals if it's a whole number for cleaner look
             input.value = Number.isInteger(result) ? result : result.toFixed(2);
         }
     }
 
     function updatePageTitle(input) {
         const val = input.value.trim();
-        if (val) {
-            document.title = val; // Set the page title which becomes the PDF filename
-        } else {
-            document.title = "Grade Calculator";
-        }
+        document.title = val ? val : "Grade Calculator";
     }
 
-    function initCalculator() {
-        addRow();
-        addRow();
-        addRow();
-        calculate();
-        updateGoalDropdown();
-    }
+    function initCalculator() { addRow(); addRow(); addRow(); calculate(); updateGoalDropdown(); }
 
     function addRow() {
         const row = document.createElement('tr');
-        // Inputs are now type="text" to allow formulas like "22+5"
-        // Added onfocus and onblur to handle formula view
-        row.innerHTML = `
-            <td><input type="text" class="category-input" placeholder="Category Name" onchange="updateGoalDropdown()"></td>
-            <td><input type="text" class="num-input earned" placeholder="0" oninput="calculate()" onfocus="handleFocus(this)" onblur="handleBlur(this)"></td>
-            <td><input type="text" class="num-input max" placeholder="0" oninput="calculate()" onfocus="handleFocus(this)" onblur="handleBlur(this)"></td>
-            <td class="row-percent">0.00%</td>
-            <td><input type="number" class="num-input weight" placeholder="0" oninput="calculate()"></td>
-            <td><button class="delete-btn" onclick="removeRow(this)">×</button></td>
-        `;
+        row.innerHTML = `<td><input type="text" class="category-input" placeholder="Category Name" onchange="updateGoalDropdown()"></td><td><input type="text" class="num-input earned" placeholder="0" oninput="calculate()" onfocus="handleFocus(this)" onblur="handleBlur(this)"></td><td><input type="text" class="num-input max" placeholder="0" oninput="calculate()" onfocus="handleFocus(this)" onblur="handleBlur(this)"></td><td class="row-percent">0.00%</td><td><input type="number" class="num-input weight" placeholder="0" oninput="calculate()"></td><td><button class="delete-btn" onclick="removeRow(this)">×</button></td>`;
         tableBody.appendChild(row);
     }
 
-    function removeRow(btn) {
-        btn.closest('tr').remove();
-        calculate();
-        updateGoalDropdown();
-    }
-
-    function clearAll() {
-        if(confirm("Are you sure you want to clear all data?")) {
-            const tableBody = document.getElementById('tableBody');
-            tableBody.innerHTML = '';
-            document.getElementById('courseNameInput').value = '';
-            document.getElementById('targetGrade').value = '';
-            document.getElementById('goalResult').innerHTML = '';
-            
-            // Remove calculated class
-            document.getElementById('goalSection').classList.remove('goal-calculated');
-            
-            updatePageTitle({value: ''}); 
-            initCalculator();
-        }
-    }
-
-    function emailReport() {
-        const btn = document.querySelector('.email-btn');
-        const originalText = btn.innerText;
-        btn.innerText = "Sending...";
-        btn.disabled = true;
-
-        const courseName = document.getElementById('courseNameInput').value || "Course Grade Report";
-        const finalGrade = document.getElementById('finalGrade').innerText;
-        
-        let message = `Course: ${courseName}\nFinal Grade: ${finalGrade}\n\nBreakdown:\n`;
-        
-        const rows = document.querySelectorAll('#tableBody tr');
-        rows.forEach(row => {
-            const cat = row.querySelector('.category-input').value || "Category";
-            const earned = row.querySelector('.earned').value || 0;
-            const max = row.querySelector('.max').value || 0;
-            const weight = row.querySelector('.weight').value || 0;
-            
-            message += `- ${cat}: ${earned}/${max} (Weight: ${weight}%)\n`;
-        });
-        
-        // Add Goal Result to email if it exists
-        const goalText = document.getElementById('goalResult').innerText;
-        if (goalText && goalText.trim().length > 0) {
-            // Basic cleanup of newlines/spaces
-            const cleanGoal = goalText.replace(/\n+/g, ' ').trim();
-            message += `\n\nGoal Analysis:\n${cleanGoal}`;
-        }
-        
-        const subject = encodeURIComponent(`${courseName} - Grade Report`);
-        const bodyEnc = encodeURIComponent(message);
-        
-        window.location.href = `mailto:?subject=${subject}&body=${bodyEnc}`;
-        
-        setTimeout(() => {
-            btn.innerText = originalText;
-            btn.disabled = false;
-        }, 1000);
-    }
-
-    // Helper: Convert percentage to standard US 4.0 scale GPA & Letter Grade
-    function getGradeInfo(percentage) {
-        if (percentage >= 93) return { gpa: '4.0', letter: 'A' };
-        if (percentage >= 90) return { gpa: '3.7', letter: 'A-' };
-        if (percentage >= 87) return { gpa: '3.3', letter: 'B+' };
-        if (percentage >= 83) return { gpa: '3.0', letter: 'B' };
-        if (percentage >= 80) return { gpa: '2.7', letter: 'B-' };
-        if (percentage >= 77) return { gpa: '2.3', letter: 'C+' };
-        if (percentage >= 73) return { gpa: '2.0', letter: 'C' };
-        if (percentage >= 70) return { gpa: '1.7', letter: 'C-' };
-        if (percentage >= 67) return { gpa: '1.3', letter: 'D+' };
-        if (percentage >= 63) return { gpa: '1.0', letter: 'D' };
-        if (percentage >= 60) return { gpa: '0.7', letter: 'D-' };
-        return { gpa: '0.0', letter: 'F' };
-    }
+    function removeRow(btn) { btn.closest('tr').remove(); calculate(); updateGoalDropdown(); }
 
     function calculate() {
-        let totalWeightedScore = 0;
-        let totalWeight = 0;
-        let totalMaxPointsForStats = 0;
-        
-        // Stats Logic: Count active vs complete rows
-        let activeRows = 0;
-        let completeRows = 0;
-
+        let totalWeightedScore = 0, totalWeight = 0, totalMaxPointsForStats = 0, activeRows = 0, completeRows = 0;
         const rows = document.querySelectorAll('#tableBody tr');
 
         rows.forEach(row => {
             const earnedInput = row.querySelector('.earned');
             const maxInput = row.querySelector('.max');
             const weightInput = row.querySelector('.weight');
-            
-            const eVal = earnedInput.value;
-            const mVal = maxInput.value;
-            const wVal = weightInput.value;
+            const eVal = earnedInput.value, mVal = maxInput.value, wVal = weightInput.value;
 
-            // A row is "Active" if user has typed anything in numbers
-            // A row is "Complete" if user has typed ALL numbers
-            // We ignore rows that are completely blank (e.g. init rows)
             if (eVal !== '' || mVal !== '' || wVal !== '') {
                 activeRows++;
-                if (eVal !== '' && mVal !== '' && wVal !== '') {
-                    completeRows++;
-                }
+                if (eVal !== '' && mVal !== '' && wVal !== '') completeRows++;
             }
 
-            // Use parseScore to handle both simple numbers and "22+5"
             const earned = parseScore(eVal);
             const max = parseScore(mVal);
             const weight = parseFloat(wVal) || 0;
@@ -1417,56 +943,38 @@
                 percentDisplay.innerText = p.toFixed(2) + '%';
                 totalWeightedScore += (earned / max) * weight;
                 totalWeight += weight;
-            } else {
-                percentDisplay.innerText = 'N/A';
-            }
-            
-            if (weight > 0 && max === 0) {
-                totalWeight += weight;
-            }
+            } else { percentDisplay.innerText = 'N/A'; }
+            if (weight > 0 && max === 0) totalWeight += weight;
         });
 
         weightDisplay.innerText = `Total Weight: ${totalWeight}%`;
-        
-        if (totalWeight !== 100 && totalWeight !== 0) {
-            weightDisplay.classList.add('total-weight-warning');
-        } else {
-            weightDisplay.classList.remove('total-weight-warning');
-        }
+        if (totalWeight !== 100 && totalWeight !== 0) weightDisplay.classList.add('total-weight-warning');
+        else weightDisplay.classList.remove('total-weight-warning');
 
         finalGradeDisplay.innerText = totalWeightedScore.toFixed(2) + '%';
-
-        // Update GPA & Letter Grade Display
+        
         const gradeInfo = getGradeInfo(totalWeightedScore);
         document.getElementById('finalGPA').innerText = gradeInfo.gpa;
         document.getElementById('finalLetter').innerText = gradeInfo.letter;
 
-        // RECORD STATS only if:
-        // 1. We have at least one active row (don't record blank tables)
-        // 2. All active rows are fully complete (don't record half-finished data)
         const shouldRecord = activeRows > 0 && activeRows === completeRows;
-        
         if (typeof window.recordCalculationStat === 'function' && shouldRecord) {
             window.recordCalculationStat(totalMaxPointsForStats, activeRows, parseFloat(gradeInfo.gpa));
         }
     }
 
-    /* --- GOAL SEEKING LOGIC --- */
     function updateGoalDropdown() {
         const select = document.getElementById('goalCategorySelect');
         const rows = document.querySelectorAll('#tableBody tr');
         const currentVal = select.value;
         select.innerHTML = '<option value="">Select a category...</option>';
-
         rows.forEach((row, index) => {
             const nameInput = row.querySelector('.category-input').value;
             const label = nameInput.trim() !== "" ? nameInput : `Row ${index + 1}`;
             const option = document.createElement('option');
-            option.value = index;
-            option.text = label;
+            option.value = index; option.text = label;
             select.appendChild(option);
         });
-
         select.value = currentVal;
     }
 
@@ -1476,20 +984,10 @@
         const resultDiv = document.getElementById('goalResult');
         const goalSection = document.getElementById('goalSection');
 
-        if (isNaN(target)) {
-            resultDiv.innerHTML = "Please enter a valid target grade percentage.";
-            return;
-        }
-        if (selectedIndex === "") {
-            resultDiv.innerHTML = "Please select a category to calculate for.";
-            return;
-        }
+        if (isNaN(target)) { resultDiv.innerHTML = "Please enter a valid target grade percentage."; return; }
+        if (selectedIndex === "") { resultDiv.innerHTML = "Please select a category to calculate for."; return; }
 
-        let sumOfOthers = 0;
-        let targetMax = 0;
-        let targetWeight = 0;
-        let targetName = "";
-
+        let sumOfOthers = 0, targetMax = 0, targetWeight = 0, targetName = "";
         const rows = document.querySelectorAll('#tableBody tr');
         
         rows.forEach((row, index) => {
@@ -1498,44 +996,26 @@
             const weight = parseFloat(row.querySelector('.weight').value) || 0;
 
             if (index == selectedIndex) {
-                targetMax = max;
-                targetWeight = weight;
-                targetName = row.querySelector('.category-input').value || "Selected Category";
+                targetMax = max; targetWeight = weight; targetName = row.querySelector('.category-input').value || "Selected Category";
             } else {
-                if (max > 0) {
-                    sumOfOthers += (earned / max) * weight;
-                }
+                if (max > 0) sumOfOthers += (earned / max) * weight;
             }
         });
 
-        if (targetWeight === 0) {
-            resultDiv.innerHTML = `Category <strong>${targetName}</strong> has no weight (0%). Please enter a weight first.`;
-            return;
-        }
-        if (targetMax === 0) {
-            resultDiv.innerHTML = `Category <strong>${targetName}</strong> has 0 total points. Please enter Max Points first.`;
-            return;
+        if (targetWeight === 0 || targetMax === 0) {
+            resultDiv.innerHTML = `Category <strong>${targetName}</strong> needs valid points/weight first.`; return;
         }
 
         const weightedPointsNeeded = target - sumOfOthers;
         const pointsNeeded = (weightedPointsNeeded / targetWeight) * targetMax;
         const percentageNeeded = (pointsNeeded / targetMax) * 100;
 
-        resultDiv.innerHTML = `
-            To get a <strong>${target}%</strong> overall, you need:<br>
-            <span style="font-size: 1.2em; color: var(--accent-hover);">
-                ${pointsNeeded.toFixed(2)} / ${targetMax} points (${percentageNeeded.toFixed(2)}%)
-            </span>
-            <br>on <em>${targetName}</em>.
-        `;
-        
-        // Add class to show section in PDF
+        resultDiv.innerHTML = `To get a <strong>${target}%</strong> overall, you need:<br><span style="font-size: 1.2em; color: var(--accent-hover);">${pointsNeeded.toFixed(2)} / ${targetMax} points (${percentageNeeded.toFixed(2)}%)</span><br>on <em>${targetName}</em>.`;
         goalSection.classList.add('goal-calculated');
     }
 
     initTheme();
     initCalculator();
-
 </script>
 
 </body>
