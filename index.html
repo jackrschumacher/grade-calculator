@@ -456,8 +456,8 @@
 
         /* --- MOBILE LAYOUT OPTIMIZATIONS --- */
         @media (max-width: 768px) {
-            body { padding: 15px; }
-            .container { padding: 20px; }
+            body { padding: 10px; }
+            .container { padding: 15px; }
             .header-row { flex-direction: column; gap: 15px; }
             .header-actions { width: 100%; justify-content: space-between; }
             .course-name-input { font-size: 1.5rem; max-width: 100%; }
@@ -480,45 +480,74 @@
             .goal-input-group { width: 100%; }
             .calc-goal-btn { margin-top: 10px; }
             input, select, textarea { font-size: 16px !important; }
+
+            /* --- MOBILE STATS MODAL FIXES --- */
+            .modal-content { 
+                width: 95%; 
+                padding: 15px; 
+                max-height: 95vh; 
+            }
             
-            /* Stats Modal specific for Mobile */
-            .modal-content { padding: 15px; width: 95%; }
-            .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-            .stat-card { padding: 15px; }
-            .stat-card h3 { font-size: 24px; }
-            .history-table th, .history-table td { font-size: 12px; padding: 10px 5px; white-space: nowrap; }
+            .modal-header { margin-bottom: 15px; padding-bottom: 10px; }
+            .modal-header h2 { font-size: 18px; }
             
-            /* Switch Table to Cards */
+            /* Make top stats cards 2x2 and compact */
+            .stats-grid { 
+                grid-template-columns: 1fr 1fr; 
+                gap: 10px; 
+                margin-bottom: 20px; 
+            }
+            .stat-card { padding: 10px; }
+            .stat-card h3 { font-size: 20px; margin-bottom: 2px; }
+            .stat-card span { font-size: 10px; letter-spacing: 0; }
+
+            /* Shorter chart on mobile */
+            .chart-container { 
+                height: 220px; 
+                padding: 10px; 
+                margin-bottom: 20px; 
+            }
+
+            /* Compact History Table */
+            .history-table-container { padding: 10px; }
+            .history-table-container h3 { font-size: 16px; margin-top: 0; }
+            .history-table th, .history-table td { 
+                padding: 8px 5px; 
+                font-size: 12px; 
+            }
+            
+            /* --- MOBILE TABLE CARD VIEW (Main App) --- */
             thead { display: none; }
             table, tbody, tr, td { display: block; width: 100%; }
             #gradeTable tr {
-                margin-bottom: 20px;
+                margin-bottom: 15px;
                 background: var(--container-bg);
                 border: 1px solid var(--border-color);
                 border-radius: 8px;
-                padding: 20px;
-                box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+                padding: 15px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.03);
                 display: grid;
                 grid-template-columns: 1fr 1fr;
-                gap: 15px;
+                gap: 10px;
             }
-            /* Fix for history table inside modal (don't turn into cards) */
-            .history-table tr { display: table-row; }
+            /* Keep history table as normal table rows inside modal */
+            .history-table tr { display: table-row; box-shadow: none; border: none; padding: 0; margin: 0; background: transparent; }
             .history-table td { display: table-cell; }
             
+            /* Main Table Card Layout */
             td:nth-of-type(1) { grid-column: 1 / -1; padding: 0; }
             td:nth-of-type(2) { padding: 0; }
             td:nth-of-type(3) { padding: 0; }
             td:nth-of-type(5) { padding: 0; }
             td:nth-of-type(4) { padding: 0; display: flex; align-items: center; justify-content: flex-end; }
-            td:nth-of-type(6) { grid-column: 1 / -1; padding: 0; margin-top: 10px; }
+            td:nth-of-type(6) { grid-column: 1 / -1; padding: 0; margin-top: 5px; }
             
-            /* Context Labels for Grade Table */
-            #gradeTable td:nth-of-type(2)::before { content: "Points Earned"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
-            #gradeTable td:nth-of-type(3)::before { content: "Total Points"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
-            #gradeTable td:nth-of-type(5)::before { content: "Weight (%)"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
-            #gradeTable td:nth-of-type(1)::before { content: "Category Name"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
-            .delete-btn { width: 100%; padding: 10px; }
+            /* Context Labels */
+            #gradeTable td:nth-of-type(2)::before { content: "Points Earned"; display: block; font-size: 10px; color: var(--text-secondary); margin-bottom: 2px; font-weight: 600; }
+            #gradeTable td:nth-of-type(3)::before { content: "Total Points"; display: block; font-size: 10px; color: var(--text-secondary); margin-bottom: 2px; font-weight: 600; }
+            #gradeTable td:nth-of-type(5)::before { content: "Weight (%)"; display: block; font-size: 10px; color: var(--text-secondary); margin-bottom: 2px; font-weight: 600; }
+            #gradeTable td:nth-of-type(1)::before { content: "Category Name"; display: block; font-size: 10px; color: var(--text-secondary); margin-bottom: 2px; font-weight: 600; }
+            .delete-btn { width: 100%; padding: 8px; }
         }
 
         /* --- PRINT / PDF EXPORT STYLES --- */
@@ -1132,15 +1161,54 @@
         const originalContainer = document.getElementById('mainAppContainer');
         const clone = originalContainer.cloneNode(true);
         
-        // 1. Setup Clone Container (Fixed Desktop Width)
-        clone.style.width = '1000px'; 
-        clone.style.position = 'absolute';
-        clone.style.left = '-9999px';
+        // 1. Setup Clone Container (Professional Document Style)
+        // Use 'fit-content' to ensure background covers everything even if table grows
+        clone.style.width = 'fit-content'; 
+        clone.style.minWidth = '1000px'; 
+        clone.style.maxWidth = '1200px';
+        clone.style.position = 'fixed'; // Use fixed to ensure it renders in viewport context
         clone.style.top = '0';
+        clone.style.left = '0';
+        clone.style.zIndex = '-9999'; // Hide behind everything
         clone.style.backgroundColor = '#ffffff'; 
         clone.style.color = '#2c3e50'; // Force dark text
-        clone.style.padding = '60px'; // Generous padding for professional look
+        clone.style.padding = '60px'; // Generous padding
+        clone.style.borderRadius = '0'; // Square corners for document look
         clone.classList.remove('container'); 
+        
+        // Force Desktop Table Layout (Override Mobile Card Styles if active)
+        const table = clone.querySelector('table');
+        const thead = clone.querySelector('thead');
+        const tbody = clone.querySelector('tbody');
+        const trs = clone.querySelectorAll('tr');
+        const tds = clone.querySelectorAll('td');
+
+        if(table) {
+            table.style.width = '100%';
+            table.style.borderCollapse = 'collapse';
+            table.style.display = 'table';
+        }
+        if(thead) thead.style.display = 'table-header-group';
+        if(tbody) tbody.style.display = 'table-row-group';
+        
+        trs.forEach(tr => {
+            tr.style.display = 'table-row';
+            tr.style.background = 'transparent';
+            tr.style.boxShadow = 'none';
+            tr.style.border = 'none';
+            tr.style.borderBottom = '1px solid #eee';
+        });
+
+        tds.forEach(td => {
+            td.style.display = 'table-cell';
+            td.style.padding = '12px 10px';
+            td.style.border = 'none';
+            // Remove mobile pseudo-elements
+            const styleId = 'mobile-override-' + Math.random().toString(36).substr(2, 9);
+            td.setAttribute('data-style-id', styleId);
+            // Reset grid positioning
+            td.style.gridColumn = 'auto';
+        });
 
         // 2. Remove Interactive Elements
         const buttons = clone.querySelector('.buttons-row');
@@ -1151,30 +1219,32 @@
         
         // 3. Goal Section Logic
         const goalWrapper = clone.querySelector('#goalSectionWrapper');
+        const footerRow = clone.querySelector('.footer-row');
+        
+        // Ensure footer layout is row (side-by-side) not column (mobile)
+        if(footerRow) {
+            footerRow.style.display = 'flex';
+            footerRow.style.flexDirection = 'row';
+            footerRow.style.gap = '40px';
+        }
+
         if (!goalWrapper.classList.contains('visible-in-export')) {
-            // If goal calc wasn't used, remove it completely
             goalWrapper.remove();
-            
-            // Fix layout: If goal is gone, expand result box or align right
-            const footer = clone.querySelector('.footer-row');
-            if(footer) {
-                footer.style.justifyContent = 'flex-end';
-                const resultBoxWrapper = clone.querySelector('.result-box-wrapper');
-                if(resultBoxWrapper) resultBoxWrapper.style.flex = '0 0 400px'; // Slightly wider result box
-            }
+            // Align Result box to right if goal is gone
+            if(footerRow) footerRow.style.justifyContent = 'flex-end';
         } else {
-            // If goal IS used, just remove the inputs/buttons inside it
             const goalControls = clone.querySelector('.goal-controls');
             if(goalControls) goalControls.remove();
             
-            // Ensure styling is correct for static view
             const goalSection = clone.querySelector('#goalSection');
-            goalSection.style.backgroundColor = '#f0fdf4'; // Light mint
+            goalSection.style.backgroundColor = '#f0fdf4'; 
             goalSection.style.borderLeft = '6px solid #1abc9c';
             goalSection.style.color = '#000';
+            goalSection.style.padding = '20px';
+            goalSection.style.marginTop = '0';
         }
 
-        // 4. Clean Table Rows
+        // 4. Clean Table Rows & Inputs
         const rows = clone.querySelectorAll('#tableBody tr');
         rows.forEach(row => {
              // Find original row to check values
@@ -1182,11 +1252,9 @@
              const origRow = document.querySelectorAll('#tableBody tr')[origRowIndex];
              const maxVal = origRow.querySelector('.max').value;
              
-             // Remove empty rows
              if(!maxVal) {
                  row.remove();
              } else {
-                 // Remove Delete Button column
                  const delBtn = row.querySelector('.delete-btn');
                  if(delBtn) delBtn.parentElement.remove();
              }
@@ -1195,9 +1263,7 @@
         const headers = clone.querySelectorAll('th');
         if(headers.length > 0) headers[headers.length-1].remove();
 
-
-        // 5. TEXT REPLACEMENT (Crucial Step)
-        // Convert all inputs to static text div for perfect rendering
+        // 5. Text Replacement
         const origInputs = originalContainer.querySelectorAll('input, select');
         const cloneInputs = clone.querySelectorAll('input, select');
         
@@ -1206,15 +1272,14 @@
                 const value = input.value;
                 const textSpan = document.createElement('div');
                 textSpan.textContent = value;
-                
-                // Copy styles for font size/weight alignment
                 textSpan.style.fontFamily = 'inherit';
                 
                 if (input.classList.contains('course-name-input')) {
                     textSpan.style.fontSize = '32px';
                     textSpan.style.fontWeight = '800';
-                    textSpan.style.marginBottom = '10px';
+                    textSpan.style.marginBottom = '20px';
                     textSpan.style.color = '#2c3e50';
+                    textSpan.style.border = 'none';
                 } else if (input.classList.contains('category-input')) {
                     textSpan.style.fontSize = '14px';
                     textSpan.style.fontWeight = '500';
@@ -1222,18 +1287,25 @@
                 } else {
                     textSpan.style.fontSize = '14px';
                     textSpan.style.textAlign = 'right';
+                    textSpan.style.color = '#2c3e50';
                 }
 
-                // Replace input with text node
                 cloneInputs[i].parentNode.replaceChild(textSpan, cloneInputs[i]);
             }
         });
 
         document.body.appendChild(clone);
         
+        // Force a layout reflow
+        const width = clone.offsetWidth;
+        const height = clone.offsetHeight;
+
         html2canvas(clone, {
-            scale: 2, // Retina quality
+            scale: 2, 
             backgroundColor: '#ffffff',
+            width: width,
+            height: height,
+            windowWidth: 1200, // Emulate desktop window
             useCORS: true
         }).then(canvas => {
             const link = document.createElement('a');
