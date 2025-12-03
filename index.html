@@ -849,7 +849,8 @@
     let sessionMaxPoints = 0;
 
     window.recordCalculationStat = function(currentTotalPoints, categoryCount, currentGPA) {
-        if (isLocalhost()) return;
+        // Prevent recording on localhost
+        // if (isLocalhost()) return; // COMMENTED OUT FOR DEBUGGING
 
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
@@ -870,12 +871,13 @@
                 }
 
                 updates['stats/global/grades_calculated'] = increment(1);
-                if (currentGPA >= 0) updates['stats/global/total_gpa_sum'] = increment(currentGPA);
+                // Safety check for NaN to prevent write failures
+                if (!isNaN(currentGPA) && currentGPA >= 0) updates['stats/global/total_gpa_sum'] = increment(currentGPA);
                 if (pointsToAdd > 0) updates['stats/global/total_points'] = increment(pointsToAdd);
                 if (categoriesToAdd > 0) updates['stats/global/total_categories'] = increment(categoriesToAdd);
                 
                 updates[`stats/monthly/${monthKey}/grades_calculated`] = increment(1);
-                if (currentGPA >= 0) updates[`stats/monthly/${monthKey}/total_gpa_sum`] = increment(currentGPA);
+                if (!isNaN(currentGPA) && currentGPA >= 0) updates[`stats/monthly/${monthKey}/total_gpa_sum`] = increment(currentGPA);
                 if (pointsToAdd > 0) updates[`stats/monthly/${monthKey}/total_points`] = increment(pointsToAdd);
                 if (categoriesToAdd > 0) updates[`stats/monthly/${monthKey}/total_categories`] = increment(categoriesToAdd);
 
@@ -886,7 +888,7 @@
 
     window.recordExportStat = function() {
         window.print();
-        if (isLocalhost()) return;
+        // if (isLocalhost()) return; // COMMENTED OUT FOR DEBUGGING
         const monthKey = getMonthKey();
         const updates = {};
         updates['stats/global/reports_exported'] = increment(1);
