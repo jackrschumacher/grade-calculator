@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Grade Calculator</title>
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
     <!-- Chart.js for the Dashboard -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -273,6 +272,31 @@
         .final-grade { font-size: 24px; font-weight: bold; color: var(--heading-color); }
         .total-weight-warning { color: #e67e22; font-weight: bold; }
 
+        /* GPA and Letter Styling */
+        .gpa-row {
+            display: flex;
+            justify-content: flex-end;
+            gap: 20px;
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border-color);
+        }
+        .mini-stat {
+            text-align: center;
+        }
+        .mini-stat span {
+            display: block;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 2px;
+        }
+        .mini-stat div {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--accent-color);
+            margin-bottom: 0 !important;
+        }
+
         /* --- GOAL CALCULATOR SECTION --- */
         .goal-section {
             margin-top: 30px;
@@ -504,6 +528,7 @@
 
             /* Full width result box */
             .result-box { width: 100%; text-align: center; }
+            .gpa-row { justify-content: center; } /* Center GPA on mobile */
             .final-grade { font-size: 2rem; }
 
             /* Stack Goal Calculator */
@@ -747,6 +772,18 @@
             <div id="weightDisplay">Total Weight: 0%</div>
             <div>Final Grade:</div>
             <div class="final-grade" id="finalGrade">0.00%</div>
+            
+            <!-- NEW GPA SECTION -->
+            <div class="gpa-row">
+                <div class="mini-stat">
+                    <span>GPA</span>
+                    <div id="finalGPA">0.0</div>
+                </div>
+                <div class="mini-stat">
+                    <span>Letter</span>
+                    <div id="finalLetter">F</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1282,6 +1319,22 @@
         }, 1000);
     }
 
+    // Helper: Convert percentage to standard US 4.0 scale GPA & Letter Grade
+    function getGradeInfo(percentage) {
+        if (percentage >= 93) return { gpa: '4.0', letter: 'A' };
+        if (percentage >= 90) return { gpa: '3.7', letter: 'A-' };
+        if (percentage >= 87) return { gpa: '3.3', letter: 'B+' };
+        if (percentage >= 83) return { gpa: '3.0', letter: 'B' };
+        if (percentage >= 80) return { gpa: '2.7', letter: 'B-' };
+        if (percentage >= 77) return { gpa: '2.3', letter: 'C+' };
+        if (percentage >= 73) return { gpa: '2.0', letter: 'C' };
+        if (percentage >= 70) return { gpa: '1.7', letter: 'C-' };
+        if (percentage >= 67) return { gpa: '1.3', letter: 'D+' };
+        if (percentage >= 63) return { gpa: '1.0', letter: 'D' };
+        if (percentage >= 60) return { gpa: '0.7', letter: 'D-' };
+        return { gpa: '0.0', letter: 'F' };
+    }
+
     function calculate() {
         let totalWeightedScore = 0;
         let totalWeight = 0;
@@ -1343,6 +1396,11 @@
         }
 
         finalGradeDisplay.innerText = totalWeightedScore.toFixed(2) + '%';
+
+        // Update GPA & Letter Grade Display
+        const gradeInfo = getGradeInfo(totalWeightedScore);
+        document.getElementById('finalGPA').innerText = gradeInfo.gpa;
+        document.getElementById('finalLetter').innerText = gradeInfo.letter;
 
         // RECORD STATS only if:
         // 1. We have at least one active row (don't record blank tables)
