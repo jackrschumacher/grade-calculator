@@ -1220,10 +1220,8 @@
         
         window.location.href = `mailto:?subject=${subject}&body=${bodyEnc}`;
         
-        setTimeout(() => {
-            btn.innerText = originalText;
-            btn.disabled = false;
-        }, 1000);
+        btn.innerText = originalText;
+        btn.disabled = false;
     }
 
     function calculate() {
