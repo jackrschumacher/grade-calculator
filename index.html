@@ -849,8 +849,10 @@
     let sessionMaxPoints = 0;
 
     window.recordCalculationStat = function(currentTotalPoints, categoryCount, currentGPA) {
-        // Prevent recording on localhost
+        // Debug mode: allow localhost, log attempts
         // if (isLocalhost()) return; // COMMENTED OUT FOR DEBUGGING
+
+        console.log("📝 Attempting to record stats...", {currentTotalPoints, categoryCount, currentGPA});
 
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
@@ -883,18 +885,26 @@
 
                 update(ref(db), updates);
             }
-        }, 1000);
+        }, 1000); // Shortened to 1s for easier testing
+    };
+
+    // Updated window.trackExport function for export tracking
+    window.trackExport = function() {
+        // if (isLocalhost()) return; // Uncomment if you want to block localhost exports
+        const monthKey = getMonthKey();
+        const updates = {};
+        
+        updates['stats/global/reports_exported'] = increment(1);
+        updates[`stats/monthly/${monthKey}/reports_exported`] = increment(1);
+        
+        update(ref(db), updates)
+        .then(() => console.log("✅ Export stat saved!"))
+        .catch((error) => console.error("❌ Export Error:", error));
     };
 
     window.recordExportStat = function() {
         window.print();
-        // if (isLocalhost()) return; // COMMENTED OUT FOR DEBUGGING
-        const monthKey = getMonthKey();
-        const updates = {};
-        updates['stats/global/reports_exported'] = increment(1);
-        updates[`stats/monthly/${monthKey}/reports_exported`] = increment(1);
-        
-        update(ref(db), updates);
+        window.trackExport(); // Call the tracking helper
     };
 
     function getLetterFromGPA(gpa) {
@@ -1033,6 +1043,7 @@
     }
 
     function copyToClipboard() {
+        if(window.trackExport) window.trackExport(); // Track export
         const text = getSummaryText();
         navigator.clipboard.writeText(text).then(() => {
             alert("Report copied to clipboard!");
@@ -1041,6 +1052,7 @@
     }
 
     function emailReport() {
+        if(window.trackExport) window.trackExport(); // Track export
         const text = getSummaryText();
         const courseName = document.getElementById('courseNameInput').value || "Course Grade Report";
         const subject = encodeURIComponent(`${courseName} - Grade Report`);
@@ -1050,6 +1062,7 @@
     }
 
     function downloadCSV() {
+        if(window.trackExport) window.trackExport(); // Track export
         let csvContent = "data:text/csv;charset=utf-8,";
         csvContent += "Category Name,Points Earned,Total Points,Weight (%)\n";
         
@@ -1077,6 +1090,7 @@
     }
 
     function downloadImage() {
+        if(window.trackExport) window.trackExport(); // Track export
         const originalContainer = document.getElementById('mainAppContainer');
         const clone = originalContainer.cloneNode(true);
         
@@ -1286,38 +1300,39 @@
     const finalGradeDisplay = document.getElementById('finalGrade');
     const weightDisplay = document.getElementById('weightDisplay');
 
-    // Helper: Convert percentage to standard US 4.0 scale GPA & Letter Grade
-    function getGradeInfo(percentage) {
-        if (percentage >= 93) return { gpa: '4.0', letter: 'A' };
-        if (percentage >= 90) return { gpa: '3.7', letter: 'A-' };
-        if (percentage >= 87) return { gpa: '3.3', letter: 'B+' };
-        if (percentage >= 83) return { gpa: '3.0', letter: 'B' };
-        if (percentage >= 80) return { gpa: '2.7', letter: 'B-' };
-        if (percentage >= 77) return { gpa: '2.3', letter: 'C+' };
-        if (percentage >= 73) return { gpa: '2.0', letter: 'C' };
-        if (percentage >= 70) return { gpa: '1.7', letter: 'C-' };
-        if (percentage >= 67) return { gpa: '1.3', letter: 'D+' };
-        if (percentage >= 63) return { gpa: '1.0', letter: 'D' };
-        if (percentage >= 60) return { gpa: '0.7', letter: 'D-' };
-        return { gpa: '0.0', letter: 'F' };
-    }
-
+    // Helper to evaluate simple math (e.g. "22+5")
     function parseScore(input) {
         if (!input) return 0;
+        // Clean string: allow digits, dot, operators +, -, *, /, (, )
         const clean = input.toString().replace(/[^0-9\.\+\-\*\/\(\)]/g, '');
         if (!clean) return 0;
         try {
+            // Check if it creates a valid number
             const result = new Function('return ' + clean)();
             return isFinite(result) ? result : 0;
-        } catch (e) { return 0; }
+        } catch (e) {
+            return 0;
+        }
     }
 
-    function handleFocus(input) { if (input.dataset.raw) input.value = input.dataset.raw; }
+    /* --- INPUT FOCUS/BLUR HANDLERS --- */
+    function handleFocus(input) {
+        // When clicking in, show the raw formula if it exists (e.g. show "22+25" instead of "47")
+        if (input.dataset.raw) {
+            input.value = input.dataset.raw;
+        }
+    }
+
     function handleBlur(input) {
+        // When leaving the box, save the formula and show the calculated result
         const rawValue = input.value;
         input.dataset.raw = rawValue;
+        
+        // Only calculate if not empty
         if (rawValue.trim() !== "") {
             const result = parseScore(rawValue);
+            // Update the display to show the result (e.g. "47")
+            // We strip decimals if it's a whole number for cleaner look
             input.value = Number.isInteger(result) ? result : result.toFixed(2);
         }
     }
