@@ -478,6 +478,44 @@
                 display: none !important;
             }
 
+            /* Only show Goal Section if it has been calculated */
+            .goal-section {
+                display: none; /* Hidden by default in print */
+            }
+            .goal-section.goal-calculated {
+                display: block !important;
+                float: left !important;
+                width: 55% !important;
+                border: 1px solid #ddd !important;
+                border-left: 4px solid #333 !important;
+                background-color: #fafafa !important;
+                color: #000 !important;
+                padding: 15px !important;
+                border-radius: 4px !important;
+                box-sizing: border-box !important;
+                margin-top: 0 !important;
+            }
+            /* Hide controls inside goal section during print */
+            .goal-controls {
+                display: none !important;
+            }
+            
+            .goal-section h3 {
+                margin-top: 0 !important;
+                font-size: 16px !important;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 8px;
+                margin-bottom: 10px;
+                color: #333 !important;
+            }
+            
+            .goal-result {
+                margin-top: 0 !important;
+                color: #000 !important;
+                font-size: 14px !important;
+                line-height: 1.5 !important;
+            }
+
             body { 
                 background-color: white !important; 
                 color: #222 !important; 
@@ -578,42 +616,6 @@
                 overflow: hidden; /* Clear floats */
             }
             
-            /* Left Side: Goal Calculator */
-            .goal-section {
-                display: none; 
-            }
-            .goal-section.goal-calculated {
-                display: block !important;
-                float: left !important;
-                width: 55% !important;
-                border: 1px solid #ddd !important;
-                border-left: 4px solid #333 !important;
-                background-color: #fafafa !important;
-                color: #000 !important;
-                padding: 15px !important;
-                border-radius: 4px !important;
-                box-sizing: border-box !important;
-                margin-top: 0 !important;
-            }
-            
-            .goal-section h3 {
-                margin-top: 0 !important;
-                font-size: 16px !important;
-                border-bottom: 1px solid #eee;
-                padding-bottom: 8px;
-                margin-bottom: 10px;
-                color: #333 !important;
-            }
-            
-            .goal-result {
-                margin-top: 0 !important;
-                color: #000 !important;
-                font-size: 14px !important;
-                line-height: 1.5 !important;
-            }
-            
-            .goal-controls { display: none !important; }
-
             /* Right Side: Result Box */
             .result-box { 
                 float: right !important; 
@@ -625,6 +627,7 @@
                 border-radius: 6px !important;
                 box-sizing: border-box !important;
                 text-align: right !important;
+                margin-right: 0 !important;
             }
             
             .result-box div { 
@@ -1227,7 +1230,10 @@
         let totalWeightedScore = 0;
         let totalWeight = 0;
         let totalMaxPointsForStats = 0;
-        let allCategoriesFilled = true;
+        
+        // Stats Logic: Count active vs complete rows
+        let activeRows = 0;
+        let completeRows = 0;
 
         const rows = document.querySelectorAll('#tableBody tr');
 
@@ -1235,15 +1241,25 @@
             const earnedInput = row.querySelector('.earned');
             const maxInput = row.querySelector('.max');
             const weightInput = row.querySelector('.weight');
+            
+            const eVal = earnedInput.value;
+            const mVal = maxInput.value;
+            const wVal = weightInput.value;
 
-            if (earnedInput.value === '' || maxInput.value === '' || weightInput.value === '') {
-                allCategoriesFilled = false;
+            // A row is "Active" if user has typed anything in numbers
+            // A row is "Complete" if user has typed ALL numbers
+            // We ignore rows that are completely blank (e.g. init rows)
+            if (eVal !== '' || mVal !== '' || wVal !== '') {
+                activeRows++;
+                if (eVal !== '' && mVal !== '' && wVal !== '') {
+                    completeRows++;
+                }
             }
 
             // Use parseScore to handle both simple numbers and "22+5"
-            const earned = parseScore(earnedInput.value);
-            const max = parseScore(maxInput.value);
-            const weight = parseFloat(weightInput.value) || 0;
+            const earned = parseScore(eVal);
+            const max = parseScore(mVal);
+            const weight = parseFloat(wVal) || 0;
             const percentDisplay = row.querySelector('.row-percent');
 
             totalMaxPointsForStats += max;
@@ -1272,8 +1288,13 @@
 
         finalGradeDisplay.innerText = totalWeightedScore.toFixed(2) + '%';
 
-        if (typeof window.recordCalculationStat === 'function' && allCategoriesFilled && rows.length > 0) {
-            window.recordCalculationStat(totalMaxPointsForStats, rows.length);
+        // RECORD STATS only if:
+        // 1. We have at least one active row (don't record blank tables)
+        // 2. All active rows are fully complete (don't record half-finished data)
+        const shouldRecord = activeRows > 0 && activeRows === completeRows;
+        
+        if (typeof window.recordCalculationStat === 'function' && shouldRecord) {
+            window.recordCalculationStat(totalMaxPointsForStats, activeRows);
         }
     }
 
