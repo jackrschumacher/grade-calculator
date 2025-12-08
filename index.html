@@ -6,11 +6,8 @@
     <title>Grade Calculator</title>
     <link rel="icon" href="favicon.ico" type="image/x-icon">
     
-    <!-- Chart.js for the Dashboard -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- html2canvas for Image Export -->
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
@@ -670,7 +667,6 @@
 <div class="container" id="mainAppContainer">
     <div class="header-row">
         <div>
-            <!-- Course Name Input -->
             <input type="text" id="courseNameInput" class="course-name-input" placeholder="Enter Course Name" oninput="updatePageTitle(this); saveData()">
             <h2>Course Grade Report</h2>
             <div class="report-date" id="reportDate"></div>
@@ -694,8 +690,7 @@
                 </tr>
             </thead>
             <tbody id="tableBody">
-                <!-- Rows injected by JS -->
-            </tbody>
+                </tbody>
         </table>
     </div>
 
@@ -705,9 +700,7 @@
         <button class="btn-std share-btn" onclick="openShareModal()">📤 Share / Export</button>
     </div>
     
-    <!-- FOOTER ROW (Goal Left, Result Right) -->
     <div class="footer-row">
-        <!-- GOAL CALCULATOR (Left) -->
         <div class="goal-section-wrapper" id="goalSectionWrapper">
             <div class="goal-section" id="goalSection">
                 <div class="goal-header">
@@ -730,7 +723,6 @@
             </div>
         </div>
 
-        <!-- RESULT BOX (Right) -->
         <div class="result-box-wrapper">
             <div class="result-box">
                 <div id="weightDisplay" class="result-header">Total Weight: 0%</div>
@@ -752,7 +744,6 @@
     </div>
 </div>
 
-<!-- SHARE MENU MODAL -->
 <div class="modal-overlay" id="shareModal">
     <div class="modal-content small-modal">
         <div class="modal-header">
@@ -789,7 +780,6 @@
     </div>
 </div>
 
-<!-- STATS MODAL DASHBOARD -->
 <div class="modal-overlay" id="statsModal">
     <div class="modal-content">
         <div class="modal-header">
@@ -842,10 +832,11 @@
 </div>
 
 
-<!-- FIREBASE MODULE -->
 <script type="module">
     // Import Firebase
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    // ADDED: Import Auth functions
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import { getDatabase, ref, onValue, update, increment, get, child } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
     const firebaseConfig = {
@@ -860,6 +851,11 @@
 
     // Initialize Firebase
     const app = initializeApp(firebaseConfig);
+    
+    // ADDED: Initialize Auth and Sign In
+    const auth = getAuth(app);
+    signInAnonymously(auth).catch((error) => console.error("Auth Failed:", error));
+    
     const db = getDatabase(app);
 
     function getMonthKey() {
