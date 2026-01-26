@@ -700,7 +700,6 @@
         <button class="btn-std share-btn" onclick="openShareModal()">📤 Share / Export</button>
     </div>
     
-    <!-- Hidden input for file restoration -->
     <input type="file" id="restoreInput" accept=".json" style="display: none;" onchange="handleRestore(this)">
 
     <div class="footer-row">
@@ -755,7 +754,6 @@
         </div>
         
         <div class="export-grid">
-            <!-- NEW BACKUP OPTIONS -->
             <div class="export-option" onclick="downloadConfig()">
                 <div class="export-icon" style="color: #3498db;">💾</div>
                 <div class="export-label">Save Backup</div>
@@ -764,7 +762,6 @@
                 <div class="export-icon" style="color: #e67e22;">📂</div>
                 <div class="export-label">Load Backup</div>
             </div>
-            <!-- EXISTING OPTIONS -->
             <div class="export-option" onclick="window.recordExportStat()">
                 <div class="export-icon">📄</div>
                 <div class="export-label">Save as PDF</div>
@@ -1432,15 +1429,24 @@
     }
 
     window.calculate = function() {
-        let totalWeightedScore = 0, totalWeight = 0, totalMaxPointsForStats = 0, activeRows = 0, completeRows = 0;
+        let totalWeightedScore = 0, 
+            totalWeightUsed = 0, 
+            totalMaxPointsForStats = 0, 
+            activeRows = 0, 
+            completeRows = 0;
+            
         const rows = document.querySelectorAll('#tableBody tr');
 
         rows.forEach(row => {
             const earnedInput = row.querySelector('.earned');
             const maxInput = row.querySelector('.max');
             const weightInput = row.querySelector('.weight');
-            const eVal = earnedInput.value, mVal = maxInput.value, wVal = weightInput.value;
+            
+            const eVal = earnedInput.value;
+            const mVal = maxInput.value;
+            const wVal = weightInput.value;
 
+            // Tracking row activity for stats
             if (eVal !== '' || mVal !== '' || wVal !== '') {
                 activeRows++;
                 if (eVal !== '' && mVal !== '' && wVal !== '') completeRows++;
@@ -1453,36 +1459,53 @@
 
             totalMaxPointsForStats += max;
 
+            // IMPROVED CALCULATION: Only calculate if total points (max) is greater than 0
             if (max > 0) {
                 const p = (earned / max) * 100;
                 percentDisplay.innerText = p.toFixed(2) + '%';
+                
+                // Add to the final grade only if there are points to calculate
                 totalWeightedScore += (earned / max) * weight;
-                totalWeight += weight;
-            } else { percentDisplay.innerText = 'N/A'; }
-            if (weight > 0 && max === 0) totalWeight += weight;
+                totalWeightUsed += weight;
+            } else { 
+                percentDisplay.innerText = '0.00%'; 
+            }
         });
 
+        // Update the UI
         const weightDisplay = document.getElementById('weightDisplay');
         if (weightDisplay) {
-            weightDisplay.innerText = `Total Weight: ${totalWeight}%`;
-            if (totalWeight !== 100 && totalWeight !== 0) weightDisplay.classList.add('total-weight-warning');
-            else weightDisplay.classList.remove('total-weight-warning');
+            // We still show the total weight of all entered rows, 
+            // but note that only rows with max > 0 are affecting the grade.
+            weightDisplay.innerText = `Total Weight: ${totalWeightUsed}%`;
+            
+            if (totalWeightUsed !== 100 && totalWeightUsed !== 0) {
+                weightDisplay.classList.add('total-weight-warning');
+            } else {
+                weightDisplay.classList.remove('total-weight-warning');
+            }
         }
 
         const finalGradeDisplay = document.getElementById('finalGrade');
         if (finalGradeDisplay) {
-            finalGradeDisplay.innerText = totalWeightedScore.toFixed(2) + '%';
-        }
+            // If totalWeightUsed is 0, we avoid division by zero and show 0%
+            const finalResult = totalWeightUsed > 0 ? (totalWeightedScore / totalWeightUsed) * 100 : 0;
+            
+            // If you prefer the current grade relative to the weight entered so far:
+            const relativeGrade = totalWeightUsed > 0 ? (totalWeightedScore / totalWeightUsed) * 100 : 0;
+            finalGradeDisplay.innerText = relativeGrade.toFixed(2) + '%';
+            
+            // Update Letter Grade and GPA based on the calculated percentage
+            const gradeInfo = getGradeInfo(relativeGrade);
+            const gpaEl = document.getElementById('finalGPA');
+            if (gpaEl) gpaEl.innerText = gradeInfo.gpa;
+            const letterEl = document.getElementById('finalLetter');
+            if (letterEl) letterEl.innerText = gradeInfo.letter;
         
-        const gradeInfo = getGradeInfo(totalWeightedScore);
-        const gpaEl = document.getElementById('finalGPA');
-        if (gpaEl) gpaEl.innerText = gradeInfo.gpa;
-        const letterEl = document.getElementById('finalLetter');
-        if (letterEl) letterEl.innerText = gradeInfo.letter;
-
-        const shouldRecord = activeRows > 0 && activeRows === completeRows;
-        if (typeof window.recordCalculationStat === 'function' && shouldRecord) {
-            window.recordCalculationStat(totalMaxPointsForStats, activeRows, parseFloat(gradeInfo.gpa));
+            const shouldRecord = activeRows > 0 && activeRows === completeRows;
+            if (typeof window.recordCalculationStat === 'function' && shouldRecord) {
+                window.recordCalculationStat(totalMaxPointsForStats, activeRows, parseFloat(gradeInfo.gpa));
+            }
         }
     }
 
@@ -1686,3 +1709,5 @@
         loadData();
     });
 </script>
+</body>
+</html>
