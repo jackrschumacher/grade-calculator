@@ -1153,76 +1153,67 @@
     }
 
     window.downloadImage = function() {
-        if(window.trackExport) window.trackExport(); // Track export
+        if(window.trackExport) window.trackExport(); 
+        
         const originalContainer = document.getElementById('mainAppContainer');
         const clone = originalContainer.cloneNode(true);
         
-        // 1. Setup Clone Container (Fixed Desktop Width)
+        // 1. FORCE LIGHT THEME VARIABLES ON THE CLONE
+        // This ensures the export always looks like the "Light" theme (dark text on white),
+        // regardless of the user's current settings.
+        clone.style.setProperty('--bg-color', '#f4f6f8');
+        clone.style.setProperty('--container-bg', '#ffffff');
+        clone.style.setProperty('--text-main', '#2c3e50');       // Dark text
+        clone.style.setProperty('--text-secondary', '#636e72');  // Grey labels
+        clone.style.setProperty('--text-muted', '#b2bec3');
+        clone.style.setProperty('--border-color', '#dfe6e9');
+        clone.style.setProperty('--accent-color', '#3498db');
+        clone.style.setProperty('--mint-bg', '#e8f6f3');
+        clone.style.setProperty('--result-bg', '#ecf0f1');       // Light grey result box
+        clone.style.setProperty('--card-bg', '#f8f9fa');
+
+        // 2. Setup Clone Container
         clone.style.width = '1000px'; 
         clone.style.position = 'absolute';
-        clone.style.left = '-9999px';
+        clone.style.left = '-9999px'; // Move off-screen
         clone.style.top = '0';
         clone.style.backgroundColor = '#ffffff'; 
-        clone.style.color = '#2c3e50'; // Force dark text
-        clone.style.padding = '60px'; // Generous padding for professional look
+        clone.style.color = '#2c3e50'; 
+        clone.style.padding = '60px'; 
         clone.classList.remove('container'); 
 
-        // 2. Remove Interactive Elements
+        // 3. Remove Interactive Elements
         const buttons = clone.querySelector('.buttons-row');
         if(buttons) buttons.remove();
         
         const themeToggle = clone.querySelector('.header-actions');
         if(themeToggle) themeToggle.remove();
         
-        // 3. Goal Section Logic
+        // 4. Handle Goal Section Visibility
         const goalWrapper = clone.querySelector('#goalSectionWrapper');
-        if (!goalWrapper.classList.contains('visible-in-export')) {
-            // If goal calc wasn't used, remove it completely
+        if (goalWrapper && !goalWrapper.classList.contains('visible-in-export')) {
+            // If goal wasn't used, remove it and align results to the right
             goalWrapper.remove();
-            
-            // Fix layout: If goal is gone, expand result box or align right
             const footer = clone.querySelector('.footer-row');
             if(footer) {
                 footer.style.justifyContent = 'flex-end';
                 const resultBoxWrapper = clone.querySelector('.result-box-wrapper');
-                if(resultBoxWrapper) resultBoxWrapper.style.flex = '0 0 400px'; // Slightly wider result box
+                if(resultBoxWrapper) resultBoxWrapper.style.flex = '0 0 400px';
             }
-        } else {
-            // If goal IS used, just remove the inputs/buttons inside it
+        } else if (goalWrapper) {
+            // If goal is used, remove inputs but keep the result text
             const goalControls = clone.querySelector('.goal-controls');
             if(goalControls) goalControls.remove();
             
-            // Ensure styling is correct for static view
             const goalSection = clone.querySelector('#goalSection');
-            goalSection.style.backgroundColor = '#f0fdf4'; // Light mint
+            // Hardcode light colors for goal section just in case
+            goalSection.style.backgroundColor = '#f0fdf4'; 
             goalSection.style.borderLeft = '6px solid #1abc9c';
-            goalSection.style.color = '#000';
+            goalSection.style.color = '#2c3e50';
         }
 
-        // 4. Clean Table Rows
-        const rows = clone.querySelectorAll('#tableBody tr');
-        rows.forEach(row => {
-             // Find original row to check values
-             const origRowIndex = Array.from(row.parentNode.children).indexOf(row);
-             const origRow = document.querySelectorAll('#tableBody tr')[origRowIndex];
-             const maxVal = origRow.querySelector('.max').value;
-             
-             // Remove empty rows
-             if(!maxVal) {
-                 row.remove();
-             } else {
-                 // Remove Delete Button column
-                 const delBtn = row.querySelector('.delete-btn');
-                 if(delBtn) delBtn.parentElement.remove();
-             }
-        });
-        // Remove header for delete column
-        const headers = clone.querySelectorAll('th');
-        if(headers.length > 0) headers[headers.length-1].remove();
-
-
-        // 5. TEXT REPLACEMENT (Crucial Step)
-        // Convert all inputs to static text div for perfect rendering
+        // 5. TEXT REPLACEMENT (Correct Order)
+        // We replace inputs with text *BEFORE* removing rows to keep indices matched.
         const origInputs = originalContainer.querySelectorAll('input, select');
         const cloneInputs = clone.querySelectorAll('input, select');
         
@@ -1231,9 +1222,8 @@
                 const value = input.value;
                 const textSpan = document.createElement('div');
                 textSpan.textContent = value;
-                
-                // Copy styles for font size/weight alignment
                 textSpan.style.fontFamily = 'inherit';
+                textSpan.style.width = '100%';
                 
                 if (input.classList.contains('course-name-input')) {
                     textSpan.style.fontSize = '32px';
@@ -1249,15 +1239,39 @@
                     textSpan.style.textAlign = 'right';
                 }
 
-                // Replace input with text node
                 cloneInputs[i].parentNode.replaceChild(textSpan, cloneInputs[i]);
             }
         });
 
+        // 6. Clean Empty Rows
+        // Now we use the Original Rows to decide what to delete in the Clone
+        const origRows = originalContainer.querySelectorAll('#tableBody tr');
+        const cloneRows = clone.querySelectorAll('#tableBody tr');
+        
+        origRows.forEach((row, i) => {
+             const maxVal = row.querySelector('.max').value;
+             
+             if(!maxVal) {
+                 // Remove empty row in clone
+                 if(cloneRows[i]) cloneRows[i].remove();
+             } else {
+                 // Remove Delete Button in clone
+                 if(cloneRows[i]) {
+                     const delBtn = cloneRows[i].querySelector('.delete-btn');
+                     if(delBtn) delBtn.parentElement.remove();
+                 }
+             }
+        });
+        
+        // Remove the "Delete" column header
+        const headers = clone.querySelectorAll('th');
+        if(headers.length > 0) headers[headers.length-1].remove();
+
+        // 7. Render
         document.body.appendChild(clone);
         
         html2canvas(clone, {
-            scale: 2, // Retina quality
+            scale: 2, 
             backgroundColor: '#ffffff',
             useCORS: true
         }).then(canvas => {
