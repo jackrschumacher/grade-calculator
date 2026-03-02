@@ -1028,7 +1028,7 @@
              addRow(); addRow(); addRow();
         }
         
-        calculate();
+        calculate(false); // Do not record stat on simple render
         updateGoalDropdown();
         
         const pageTitle = data.courseName.trim() ? data.courseName : "Grade Calculator";
@@ -1326,7 +1326,7 @@
 
     window.removeRow = function(btn) { btn.closest('tr').remove(); calculate(); updateGoalDropdown(); saveData(); }
 
-    window.calculate = function() {
+    window.calculate = function(shouldRecordStat = true) {
         let totalWeightedScore = 0, totalWeightUsed = 0, totalMaxPointsForStats = 0, activeRows = 0, completeRows = 0;
         document.querySelectorAll('#tableBody tr').forEach(row => {
             const eVal = row.querySelector('.earned').value; const mVal = row.querySelector('.max').value; const wVal = row.querySelector('.weight').value;
@@ -1355,7 +1355,7 @@
             document.getElementById('finalGPA').innerText = gradeInfo.gpa;
             document.getElementById('finalLetter').innerText = gradeInfo.letter;
         
-            if (typeof window.recordCalculationStat === 'function' && activeRows > 0 && activeRows === completeRows) {
+            if (shouldRecordStat && typeof window.recordCalculationStat === 'function' && activeRows > 0 && activeRows === completeRows) {
                 window.recordCalculationStat(totalMaxPointsForStats, activeRows, parseFloat(gradeInfo.gpa));
             }
         }
