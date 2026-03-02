@@ -774,8 +774,9 @@
     }
 
     let debounceTimer;
-    let sessionMaxCategories = 0; 
-    let sessionMaxPoints = 0;
+    // Map stats per course to accurately count across tabs
+    let sessionMaxCategories = {}; 
+    let sessionMaxPoints = {};
 
     window.recordCalculationStat = function(currentTotalPoints, categoryCount, currentGPA) {
         clearTimeout(debounceTimer);
@@ -784,18 +785,22 @@
                 const monthKey = getMonthKey();
                 const updates = {};
                 
+                const maxCat = sessionMaxCategories[activeCourseId] || 0;
+                const maxPts = sessionMaxPoints[activeCourseId] || 0;
+
                 let categoriesToAdd = 0;
-                if (categoryCount > sessionMaxCategories) {
-                    categoriesToAdd = categoryCount - sessionMaxCategories;
-                    sessionMaxCategories = categoryCount;
+                if (categoryCount > maxCat) {
+                    categoriesToAdd = categoryCount - maxCat;
+                    sessionMaxCategories[activeCourseId] = categoryCount;
                 }
 
                 let pointsToAdd = 0;
-                if (currentTotalPoints > sessionMaxPoints) {
-                    pointsToAdd = currentTotalPoints - sessionMaxPoints;
-                    sessionMaxPoints = currentTotalPoints;
+                if (currentTotalPoints > maxPts) {
+                    pointsToAdd = currentTotalPoints - maxPts;
+                    sessionMaxPoints[activeCourseId] = currentTotalPoints;
                 }
 
+                // Increment Grades Calculated, plus points and categories if applicable
                 updates['stats/global/grades_calculated'] = increment(1);
                 if (!isNaN(currentGPA) && currentGPA >= 0) updates['stats/global/total_gpa_sum'] = increment(currentGPA);
                 if (pointsToAdd > 0) updates['stats/global/total_points'] = increment(pointsToAdd);
@@ -1016,10 +1021,10 @@
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td><input type="text" class="category-input" placeholder="Category Name" onchange="updateGoalDropdown()" oninput="saveData()" value="${rowData.name || ''}"></td>
-                    <td><input type="text" class="num-input earned" placeholder="0" oninput="calculate(); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)" value="${rowData.earned || ''}"></td>
-                    <td><input type="text" class="num-input max" placeholder="0" oninput="calculate(); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)" value="${rowData.max || ''}"></td>
+                    <td><input type="text" class="num-input earned" placeholder="0" oninput="userTriggeredCalculate(); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)" value="${rowData.earned || ''}"></td>
+                    <td><input type="text" class="num-input max" placeholder="0" oninput="userTriggeredCalculate(); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)" value="${rowData.max || ''}"></td>
                     <td class="row-percent">0.00%</td>
-                    <td><input type="number" class="num-input weight" placeholder="0" oninput="calculate(); saveData()" value="${rowData.weight || ''}"></td>
+                    <td><input type="number" class="num-input weight" placeholder="0" oninput="userTriggeredCalculate(); saveData()" value="${rowData.weight || ''}"></td>
                     <td><button class="delete-btn" onclick="removeRow(this)">×</button></td>
                 `;
                 tableBody.appendChild(row);
@@ -1028,7 +1033,8 @@
              addRow(); addRow(); addRow();
         }
         
-        calculate(false); // Do not record stat on simple render
+        // PURE UI MATH: No firebase trigger here
+        calculate();
         updateGoalDropdown();
         
         const pageTitle = data.courseName.trim() ? data.courseName : "Grade Calculator";
@@ -1099,7 +1105,6 @@
     function closeStats() { statsModal.style.display = 'none'; }
 
     window.openShareModal = function() {
-        // Only auto-fill if the input is currently empty
         let nameInput = document.getElementById('exportFileName');
         if (!nameInput.value.trim()) {
             let currentCourse = document.getElementById('courseNameInput').value.trim();
@@ -1108,7 +1113,6 @@
             const safeName = currentCourse.replace(/[^a-z0-9_\-]/gi, '_');
             nameInput.value = safeName;
         }
-        
         shareModal.style.display = 'flex'; 
     }
     
@@ -1126,7 +1130,6 @@
         let name = document.getElementById('exportFileName').value.trim();
         if (!name) name = "Grade_Report";
         
-        // Remove the extension if the user typed it out (e.g. "report.json") so it doesn't double up
         const extRegex = new RegExp(`\\.${extension}$`, 'i');
         name = name.replace(extRegex, '');
         
@@ -1319,14 +1322,15 @@
     window.addRow = function() {
         const tbody = document.getElementById('tableBody');
         const row = document.createElement('tr');
-        row.innerHTML = `<td><input type="text" class="category-input" placeholder="Category Name" onchange="updateGoalDropdown()" oninput="saveData()"></td><td><input type="text" class="num-input earned" placeholder="0" oninput="calculate(); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)"></td><td><input type="text" class="num-input max" placeholder="0" oninput="calculate(); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)"></td><td class="row-percent">0.00%</td><td><input type="number" class="num-input weight" placeholder="0" oninput="calculate(); saveData()"></td><td><button class="delete-btn" onclick="removeRow(this)">×</button></td>`;
+        row.innerHTML = `<td><input type="text" class="category-input" placeholder="Category Name" onchange="updateGoalDropdown()" oninput="saveData()"></td><td><input type="text" class="num-input earned" placeholder="0" oninput="userTriggeredCalculate(); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)"></td><td><input type="text" class="num-input max" placeholder="0" oninput="userTriggeredCalculate(); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)"></td><td class="row-percent">0.00%</td><td><input type="number" class="num-input weight" placeholder="0" oninput="userTriggeredCalculate(); saveData()"></td><td><button class="delete-btn" onclick="removeRow(this)">×</button></td>`;
         tbody.appendChild(row);
         saveData();
     }
 
-    window.removeRow = function(btn) { btn.closest('tr').remove(); calculate(); updateGoalDropdown(); saveData(); }
+    window.removeRow = function(btn) { btn.closest('tr').remove(); userTriggeredCalculate(); updateGoalDropdown(); saveData(); }
 
-    window.calculate = function(shouldRecordStat = true) {
+    // DECOUPLED: This function ONLY does the math and updates the screen
+    window.calculate = function() {
         let totalWeightedScore = 0, totalWeightUsed = 0, totalMaxPointsForStats = 0, activeRows = 0, completeRows = 0;
         document.querySelectorAll('#tableBody tr').forEach(row => {
             const eVal = row.querySelector('.earned').value; const mVal = row.querySelector('.max').value; const wVal = row.querySelector('.weight').value;
@@ -1348,16 +1352,25 @@
         }
 
         const finalGradeDisplay = document.getElementById('finalGrade');
+        let gpaToReturn = 0;
         if (finalGradeDisplay) {
             const relativeGrade = totalWeightUsed > 0 ? (totalWeightedScore / totalWeightUsed) * 100 : 0;
             finalGradeDisplay.innerText = relativeGrade.toFixed(2) + '%';
             const gradeInfo = getGradeInfo(relativeGrade);
             document.getElementById('finalGPA').innerText = gradeInfo.gpa;
             document.getElementById('finalLetter').innerText = gradeInfo.letter;
-        
-            if (shouldRecordStat && typeof window.recordCalculationStat === 'function' && activeRows > 0 && activeRows === completeRows) {
-                window.recordCalculationStat(totalMaxPointsForStats, activeRows, parseFloat(gradeInfo.gpa));
-            }
+            gpaToReturn = gradeInfo.gpa;
+        }
+
+        // Return the stats so the tracker function can grab them if it wants to
+        return { totalMaxPointsForStats, activeRows, completeRows, gpa: parseFloat(gpaToReturn) };
+    }
+
+    // DECOUPLED: This function runs the math AND pings the DB. Bound ONLY to physical typing.
+    window.userTriggeredCalculate = function() {
+        const stats = calculate();
+        if (typeof window.recordCalculationStat === 'function' && stats.activeRows > 0 && stats.activeRows === stats.completeRows) {
+            window.recordCalculationStat(stats.totalMaxPointsForStats, stats.activeRows, stats.gpa);
         }
     }
 
@@ -1409,7 +1422,7 @@
                  earnedInput.value = pointsNeeded.toFixed(2); saveData(); 
             }
         }
-        calculate();
+        calculate(); // Math only
     }
 
     window.clearCourse = function() {
@@ -1469,7 +1482,6 @@
                     
                     if(window.trackCourseAdded) window.trackCourseAdded(); 
                     
-                    // NEW: Pre-fill the export file name based on the imported file
                     const importedName = file.name.replace(/\.json$/i, '');
                     document.getElementById('exportFileName').value = importedName;
                     
