@@ -773,34 +773,30 @@
         return date.toLocaleDateString('default', { month: 'long', year: 'numeric' });
     }
 
-    let debounceTimer;
-    // Map stats per course to accurately count across tabs
-    let sessionMaxCategories = {}; 
-    let sessionMaxPoints = {};
+    // KILL SWITCH for timers so they don't linger across tabs
+    window.calcDebounceTimer = null;
+    let sessionMaxCategories = 0; 
+    let sessionMaxPoints = 0;
 
     window.recordCalculationStat = function(currentTotalPoints, categoryCount, currentGPA) {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
+        clearTimeout(window.calcDebounceTimer);
+        window.calcDebounceTimer = setTimeout(() => {
             if (currentTotalPoints > 0) {
                 const monthKey = getMonthKey();
                 const updates = {};
                 
-                const maxCat = sessionMaxCategories[activeCourseId] || 0;
-                const maxPts = sessionMaxPoints[activeCourseId] || 0;
-
                 let categoriesToAdd = 0;
-                if (categoryCount > maxCat) {
-                    categoriesToAdd = categoryCount - maxCat;
-                    sessionMaxCategories[activeCourseId] = categoryCount;
+                if (categoryCount > sessionMaxCategories) {
+                    categoriesToAdd = categoryCount - sessionMaxCategories;
+                    sessionMaxCategories = categoryCount;
                 }
 
                 let pointsToAdd = 0;
-                if (currentTotalPoints > maxPts) {
-                    pointsToAdd = currentTotalPoints - maxPts;
-                    sessionMaxPoints[activeCourseId] = currentTotalPoints;
+                if (currentTotalPoints > sessionMaxPoints) {
+                    pointsToAdd = currentTotalPoints - sessionMaxPoints;
+                    sessionMaxPoints = currentTotalPoints;
                 }
 
-                // Increment Grades Calculated, plus points and categories if applicable
                 updates['stats/global/grades_calculated'] = increment(1);
                 if (!isNaN(currentGPA) && currentGPA >= 0) updates['stats/global/total_gpa_sum'] = increment(currentGPA);
                 if (pointsToAdd > 0) updates['stats/global/total_points'] = increment(pointsToAdd);
@@ -824,11 +820,12 @@
         update(ref(db), updates);
     };
 
-    window.trackCourseAdded = function() {
+    window.trackCourseAdded = function(count = 1) {
+        if (count <= 0) return;
         const monthKey = getMonthKey();
         const updates = {};
-        updates['stats/global/total_courses'] = increment(1);
-        updates[`stats/monthly/${monthKey}/total_courses`] = increment(1);
+        updates['stats/global/total_courses'] = increment(count);
+        updates[`stats/monthly/${monthKey}/total_courses`] = increment(count);
         update(ref(db), updates);
     };
 
@@ -903,6 +900,9 @@
     let coursesData = {
         'course-1': { courseName: '', targetGrade: '', rows: [] }
     };
+    
+    // Hash check to prevent ghost database writes from browser autofills or tab switches
+    let lastCalculatedHash = ""; 
 
     function generateId() {
         return 'course-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
@@ -970,15 +970,17 @@
 
     window.switchCourse = function(id) {
         if (id === activeCourseId) return;
-        saveData(); // Securely save the old one
-        activeCourseId = id; // Switch active context
-        persistToStorage(); // Update pointer in storage
+        clearTimeout(window.calcDebounceTimer); // Instantly kill any pending database writes from the old tab
+        saveData(); 
+        activeCourseId = id; 
+        persistToStorage(); 
         renderTabs();
         renderCourseUI();
     }
 
     window.addCourse = function() {
-        saveData(); // Securely save current
+        clearTimeout(window.calcDebounceTimer);
+        saveData(); 
         const newId = generateId();
         coursesData[newId] = { courseName: '', targetGrade: '', rows: [] };
         activeCourseId = newId;
@@ -986,16 +988,17 @@
         document.getElementById('goalSectionWrapper').classList.remove('visible-in-export');
         document.getElementById('goalResult').innerHTML = '';
         
-        persistToStorage(); // Save new structure to storage
+        persistToStorage(); 
         renderTabs();
         renderCourseUI();
 
-        if(window.trackCourseAdded) window.trackCourseAdded(); 
+        if(window.trackCourseAdded) window.trackCourseAdded(1); 
     }
 
     window.deleteCourse = function(id) {
         if (Object.keys(coursesData).length <= 1) return;
         if (confirm('Are you sure you want to remove this course?')) {
+            clearTimeout(window.calcDebounceTimer);
             delete coursesData[id];
             if (activeCourseId === id) {
                 activeCourseId = Object.keys(coursesData)[0];
@@ -1021,10 +1024,10 @@
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td><input type="text" class="category-input" placeholder="Category Name" onchange="updateGoalDropdown()" oninput="saveData()" value="${rowData.name || ''}"></td>
-                    <td><input type="text" class="num-input earned" placeholder="0" oninput="userTriggeredCalculate(); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)" value="${rowData.earned || ''}"></td>
-                    <td><input type="text" class="num-input max" placeholder="0" oninput="userTriggeredCalculate(); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)" value="${rowData.max || ''}"></td>
+                    <td><input type="text" class="num-input earned" placeholder="0" oninput="calculate(true); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)" value="${rowData.earned || ''}"></td>
+                    <td><input type="text" class="num-input max" placeholder="0" oninput="calculate(true); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)" value="${rowData.max || ''}"></td>
                     <td class="row-percent">0.00%</td>
-                    <td><input type="number" class="num-input weight" placeholder="0" oninput="userTriggeredCalculate(); saveData()" value="${rowData.weight || ''}"></td>
+                    <td><input type="number" class="num-input weight" placeholder="0" oninput="calculate(true); saveData()" value="${rowData.weight || ''}"></td>
                     <td><button class="delete-btn" onclick="removeRow(this)">×</button></td>
                 `;
                 tableBody.appendChild(row);
@@ -1033,8 +1036,7 @@
              addRow(); addRow(); addRow();
         }
         
-        // PURE UI MATH: No firebase trigger here
-        calculate();
+        calculate(false); // False prevents it from recording a new stat just for loading the page
         updateGoalDropdown();
         
         const pageTitle = data.courseName.trim() ? data.courseName : "Grade Calculator";
@@ -1109,10 +1111,10 @@
         if (!nameInput.value.trim()) {
             let currentCourse = document.getElementById('courseNameInput').value.trim();
             if (!currentCourse) currentCourse = "Grade_Report";
-            // Convert to safe file name format
             const safeName = currentCourse.replace(/[^a-z0-9_\-]/gi, '_');
             nameInput.value = safeName;
         }
+        
         shareModal.style.display = 'flex'; 
     }
     
@@ -1124,15 +1126,11 @@
     };
 
     /* --- EXPORT FUNCTIONS --- */
-    
-    // Helper to grab the user-defined name or a safe default
     function getCustomFileName(extension) {
         let name = document.getElementById('exportFileName').value.trim();
         if (!name) name = "Grade_Report";
-        
         const extRegex = new RegExp(`\\.${extension}$`, 'i');
         name = name.replace(extRegex, '');
-        
         return `${name}.${extension}`;
     }
 
@@ -1285,7 +1283,7 @@
                 coursesData['course-1'] = JSON.parse(savedSingle);
             } catch(e) {}
         } else {
-            if(window.trackCourseAdded) window.trackCourseAdded();
+            if(window.trackCourseAdded) window.trackCourseAdded(1);
         }
         
         if (!coursesData[activeCourseId]) activeCourseId = Object.keys(coursesData)[0];
@@ -1322,15 +1320,14 @@
     window.addRow = function() {
         const tbody = document.getElementById('tableBody');
         const row = document.createElement('tr');
-        row.innerHTML = `<td><input type="text" class="category-input" placeholder="Category Name" onchange="updateGoalDropdown()" oninput="saveData()"></td><td><input type="text" class="num-input earned" placeholder="0" oninput="userTriggeredCalculate(); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)"></td><td><input type="text" class="num-input max" placeholder="0" oninput="userTriggeredCalculate(); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)"></td><td class="row-percent">0.00%</td><td><input type="number" class="num-input weight" placeholder="0" oninput="userTriggeredCalculate(); saveData()"></td><td><button class="delete-btn" onclick="removeRow(this)">×</button></td>`;
+        row.innerHTML = `<td><input type="text" class="category-input" placeholder="Category Name" onchange="updateGoalDropdown()" oninput="saveData()"></td><td><input type="text" class="num-input earned" placeholder="0" oninput="calculate(true); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)"></td><td><input type="text" class="num-input max" placeholder="0" oninput="calculate(true); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)"></td><td class="row-percent">0.00%</td><td><input type="number" class="num-input weight" placeholder="0" oninput="calculate(true); saveData()"></td><td><button class="delete-btn" onclick="removeRow(this)">×</button></td>`;
         tbody.appendChild(row);
         saveData();
     }
 
-    window.removeRow = function(btn) { btn.closest('tr').remove(); userTriggeredCalculate(); updateGoalDropdown(); saveData(); }
+    window.removeRow = function(btn) { btn.closest('tr').remove(); calculate(true); updateGoalDropdown(); saveData(); }
 
-    // DECOUPLED: This function ONLY does the math and updates the screen
-    window.calculate = function() {
+    window.calculate = function(isUserInput = true) {
         let totalWeightedScore = 0, totalWeightUsed = 0, totalMaxPointsForStats = 0, activeRows = 0, completeRows = 0;
         document.querySelectorAll('#tableBody tr').forEach(row => {
             const eVal = row.querySelector('.earned').value; const mVal = row.querySelector('.max').value; const wVal = row.querySelector('.weight').value;
@@ -1352,25 +1349,29 @@
         }
 
         const finalGradeDisplay = document.getElementById('finalGrade');
-        let gpaToReturn = 0;
+        let gradeInfo = { gpa: '0.0', letter: 'F' };
+
         if (finalGradeDisplay) {
             const relativeGrade = totalWeightUsed > 0 ? (totalWeightedScore / totalWeightUsed) * 100 : 0;
             finalGradeDisplay.innerText = relativeGrade.toFixed(2) + '%';
-            const gradeInfo = getGradeInfo(relativeGrade);
+            gradeInfo = getGradeInfo(relativeGrade);
             document.getElementById('finalGPA').innerText = gradeInfo.gpa;
             document.getElementById('finalLetter').innerText = gradeInfo.letter;
-            gpaToReturn = gradeInfo.gpa;
         }
 
-        // Return the stats so the tracker function can grab them if it wants to
-        return { totalMaxPointsForStats, activeRows, completeRows, gpa: parseFloat(gpaToReturn) };
-    }
+        // Exact math hash to block false-positive writes from tab changes or extensions
+        const currentHash = `${activeCourseId}_${totalMaxPointsForStats}_${totalWeightedScore}_${activeRows}`;
+        
+        if (!isUserInput) {
+            lastCalculatedHash = currentHash;
+            return; // Silently exit
+        }
 
-    // DECOUPLED: This function runs the math AND pings the DB. Bound ONLY to physical typing.
-    window.userTriggeredCalculate = function() {
-        const stats = calculate();
-        if (typeof window.recordCalculationStat === 'function' && stats.activeRows > 0 && stats.activeRows === stats.completeRows) {
-            window.recordCalculationStat(stats.totalMaxPointsForStats, stats.activeRows, stats.gpa);
+        if (currentHash !== lastCalculatedHash) {
+            lastCalculatedHash = currentHash;
+            if (typeof window.recordCalculationStat === 'function' && activeRows > 0 && activeRows === completeRows) {
+                window.recordCalculationStat(totalMaxPointsForStats, activeRows, parseFloat(gradeInfo.gpa));
+            }
         }
     }
 
@@ -1422,11 +1423,12 @@
                  earnedInput.value = pointsNeeded.toFixed(2); saveData(); 
             }
         }
-        calculate(); // Math only
+        calculate(true);
     }
 
     window.clearCourse = function() {
         if(confirm("Are you sure you want to clear this course?")) {
+            clearTimeout(window.calcDebounceTimer);
             coursesData[activeCourseId] = { courseName: '', targetGrade: '', rows: [] };
             persistToStorage();
             renderTabs();
@@ -1463,9 +1465,13 @@
             try {
                 const data = JSON.parse(e.target.result);
                 if(confirm(`Restore backup data? This will add or replace your current courses.`)) {
+                    clearTimeout(window.calcDebounceTimer);
+                    
+                    let addedCount = 1;
                     if (data.format === 'multi') {
                         activeCourseId = data.activeCourseId;
                         coursesData = data.coursesData;
+                        addedCount = Object.keys(coursesData).length;
                     } else {
                         const newId = generateId();
                         coursesData[newId] = {
@@ -1474,13 +1480,14 @@
                             rows: data.rows || []
                         };
                         activeCourseId = newId;
+                        addedCount = 1;
                     }
                     
                     persistToStorage(); 
                     renderTabs();       
                     renderCourseUI();   
                     
-                    if(window.trackCourseAdded) window.trackCourseAdded(); 
+                    if(window.trackCourseAdded) window.trackCourseAdded(addedCount); 
                     
                     const importedName = file.name.replace(/\.json$/i, '');
                     document.getElementById('exportFileName').value = importedName;
