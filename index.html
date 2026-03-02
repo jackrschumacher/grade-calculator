@@ -423,6 +423,11 @@
         }
 
         /* --- MODALS --- */
+        .export-filename-group { margin-bottom: 25px; display: flex; flex-direction: column; gap: 8px; }
+        .export-filename-group label { font-size: 14px; font-weight: 600; color: var(--text-secondary); }
+        .export-filename-group input { padding: 10px 12px; border: 1px solid var(--border-color); background-color: var(--bg-color); color: var(--text-main); border-radius: 6px; font-size: 14px; width: 100%; transition: border-color 0.2s; }
+        .export-filename-group input:focus { outline: none; border-color: var(--accent-color); }
+
         .export-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .export-option { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; color: var(--text-main); display: flex; flex-direction: column; align-items: center; gap: 10px; }
         .export-option:hover { transform: translateY(-2px); border-color: var(--accent-color); }
@@ -433,7 +438,7 @@
         .modal-content { background-color: var(--modal-bg); color: var(--modal-text); width: 95%; max-width: 1100px; border-radius: 12px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; max-height: 90vh; overflow-y: auto; border: 1px solid var(--modal-border); transition: background-color 0.3s, color 0.3s; }
         .modal-content.small-modal { max-width: 500px; }
         
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid var(--modal-border); padding-bottom: 15px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--modal-border); padding-bottom: 15px; }
         .modal-header h2 { color: var(--modal-text); margin: 0; font-size: 24px; }
         .close-modal { background: none; border: none; color: var(--modal-text); opacity: 0.7; font-size: 28px; cursor: pointer; transition: opacity 0.2s; }
         .close-modal:hover { opacity: 1; color: var(--close-btn-hover); }
@@ -634,6 +639,11 @@
             <h2>Share / Export</h2>
             <button class="close-modal" onclick="closeShareModal()">×</button>
         </div>
+
+        <div class="export-filename-group">
+            <label for="exportFileName">File Name (for downloads):</label>
+            <input type="text" id="exportFileName" placeholder="grade_report">
+        </div>
         
         <div class="export-grid">
             <div class="export-option" onclick="downloadConfig()">
@@ -809,7 +819,6 @@
         update(ref(db), updates);
     };
 
-    // --- NEW: Track Courses Added ---
     window.trackCourseAdded = function() {
         const monthKey = getMonthKey();
         const updates = {};
@@ -976,7 +985,6 @@
         renderTabs();
         renderCourseUI();
 
-        // Track that a course was added
         if(window.trackCourseAdded) window.trackCourseAdded(); 
     }
 
@@ -1090,7 +1098,20 @@
     };
     function closeStats() { statsModal.style.display = 'none'; }
 
-    window.openShareModal = function() { shareModal.style.display = 'flex'; }
+    window.openShareModal = function() {
+        // Only auto-fill if the input is currently empty
+        let nameInput = document.getElementById('exportFileName');
+        if (!nameInput.value.trim()) {
+            let currentCourse = document.getElementById('courseNameInput').value.trim();
+            if (!currentCourse) currentCourse = "Grade_Report";
+            // Convert to safe file name format
+            const safeName = currentCourse.replace(/[^a-z0-9_\-]/gi, '_');
+            nameInput.value = safeName;
+        }
+        
+        shareModal.style.display = 'flex'; 
+    }
+    
     window.closeShareModal = function() { shareModal.style.display = 'none'; }
 
     window.onclick = function(event) {
@@ -1099,6 +1120,19 @@
     };
 
     /* --- EXPORT FUNCTIONS --- */
+    
+    // Helper to grab the user-defined name or a safe default
+    function getCustomFileName(extension) {
+        let name = document.getElementById('exportFileName').value.trim();
+        if (!name) name = "Grade_Report";
+        
+        // Remove the extension if the user typed it out (e.g. "report.json") so it doesn't double up
+        const extRegex = new RegExp(`\\.${extension}$`, 'i');
+        name = name.replace(extRegex, '');
+        
+        return `${name}.${extension}`;
+    }
+
     function getSummaryText() {
         const courseName = document.getElementById('courseNameInput').value || "Course Grade Report";
         const finalGrade = document.getElementById('finalGrade').innerText;
@@ -1147,7 +1181,7 @@
         csvContent += `\nFinal Grade,,${document.getElementById('finalGrade').innerText},`;
         const link = document.createElement("a");
         link.setAttribute("href", encodeURI(csvContent));
-        link.setAttribute("download", `${document.getElementById('courseNameInput').value || "grade_report"}.csv`);
+        link.setAttribute("download", getCustomFileName('csv'));
         document.body.appendChild(link); link.click(); document.body.removeChild(link);
         closeShareModal();
     }
@@ -1201,7 +1235,7 @@
 
         document.body.appendChild(clone);
         html2canvas(clone, { scale: 2, backgroundColor: '#ffffff', useCORS: true }).then(canvas => {
-            const link = document.createElement('a'); link.download = `${document.getElementById('courseNameInput').value || "grade_report"}.png`; link.href = canvas.toDataURL(); link.click(); document.body.removeChild(clone); closeShareModal();
+            const link = document.createElement('a'); link.download = getCustomFileName('png'); link.href = canvas.toDataURL(); link.click(); document.body.removeChild(clone); closeShareModal();
         });
     }
 
@@ -1244,12 +1278,10 @@
                 }
             } catch (e) { console.error("Error loading multi-course data", e); }
         } else if (savedSingle) {
-            // Migrate old single course data if available
             try {
                 coursesData['course-1'] = JSON.parse(savedSingle);
             } catch(e) {}
         } else {
-            // Very First Time Load - Track creation of the initial course
             if(window.trackCourseAdded) window.trackCourseAdded();
         }
         
@@ -1280,7 +1312,7 @@
         const val = input.value.trim();
         document.title = val ? val : "Grade Calculator";
         coursesData[activeCourseId].courseName = val; 
-        renderTabs(); // Update Tab text instantly
+        renderTabs(); 
         saveData();
     }
 
@@ -1392,7 +1424,7 @@
     /* --- BACKUP & RESTORE LOGIC --- */
     window.downloadConfig = function() {
         if(window.trackExport) window.trackExport();
-        saveCurrentCourseToState(); // Ensure the latest active info is inside the object
+        saveCurrentCourseToState(); 
         
         const dataToExport = {
             format: 'multi',
@@ -1402,7 +1434,7 @@
 
         const blob = new Blob([JSON.stringify(dataToExport, null, 2)], {type: "application/json"});
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-        a.download = `grade_calc_backup_multi.json`;
+        a.download = getCustomFileName('json');
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
         closeShareModal();
     }
@@ -1422,7 +1454,6 @@
                         activeCourseId = data.activeCourseId;
                         coursesData = data.coursesData;
                     } else {
-                        // Support importing legacy single-course JSON exports by creating a new tab!
                         const newId = generateId();
                         coursesData[newId] = {
                             courseName: data.courseName || 'Imported Course',
@@ -1432,11 +1463,15 @@
                         activeCourseId = newId;
                     }
                     
-                    persistToStorage(); // Save newly imported data straight to DB
-                    renderTabs();       // Re-draw Tabs
-                    renderCourseUI();   // Populate DOM
+                    persistToStorage(); 
+                    renderTabs();       
+                    renderCourseUI();   
                     
-                    if(window.trackCourseAdded) window.trackCourseAdded(); // Track as course creation
+                    if(window.trackCourseAdded) window.trackCourseAdded(); 
+                    
+                    // NEW: Pre-fill the export file name based on the imported file
+                    const importedName = file.name.replace(/\.json$/i, '');
+                    document.getElementById('exportFileName').value = importedName;
                     
                     alert("Backup restored successfully!");
                 }
