@@ -773,10 +773,11 @@
         return date.toLocaleDateString('default', { month: 'long', year: 'numeric' });
     }
 
-    // KILL SWITCH for timers so they don't linger across tabs
     window.calcDebounceTimer = null;
-    let sessionMaxCategories = 0; 
-    let sessionMaxPoints = 0;
+    
+    // Track stats individually for each tab to prevent points inflating
+    let sessionMaxCategories = {}; 
+    let sessionMaxPoints = {};
 
     window.recordCalculationStat = function(currentTotalPoints, categoryCount, currentGPA) {
         clearTimeout(window.calcDebounceTimer);
@@ -785,16 +786,18 @@
                 const monthKey = getMonthKey();
                 const updates = {};
                 
+                let maxCats = sessionMaxCategories[activeCourseId] || 0;
                 let categoriesToAdd = 0;
-                if (categoryCount > sessionMaxCategories) {
-                    categoriesToAdd = categoryCount - sessionMaxCategories;
-                    sessionMaxCategories = categoryCount;
+                if (categoryCount > maxCats) {
+                    categoriesToAdd = categoryCount - maxCats;
+                    sessionMaxCategories[activeCourseId] = categoryCount;
                 }
 
+                let maxPts = sessionMaxPoints[activeCourseId] || 0;
                 let pointsToAdd = 0;
-                if (currentTotalPoints > sessionMaxPoints) {
-                    pointsToAdd = currentTotalPoints - sessionMaxPoints;
-                    sessionMaxPoints = currentTotalPoints;
+                if (currentTotalPoints > maxPts) {
+                    pointsToAdd = currentTotalPoints - maxPts;
+                    sessionMaxPoints[activeCourseId] = currentTotalPoints;
                 }
 
                 updates['stats/global/grades_calculated'] = increment(1);
@@ -901,7 +904,6 @@
         'course-1': { courseName: '', targetGrade: '', rows: [] }
     };
     
-    // Hash check to prevent ghost database writes from browser autofills or tab switches
     let lastCalculatedHash = ""; 
 
     function generateId() {
@@ -970,7 +972,7 @@
 
     window.switchCourse = function(id) {
         if (id === activeCourseId) return;
-        clearTimeout(window.calcDebounceTimer); // Instantly kill any pending database writes from the old tab
+        clearTimeout(window.calcDebounceTimer); 
         saveData(); 
         activeCourseId = id; 
         persistToStorage(); 
@@ -1022,12 +1024,13 @@
         if (data.rows && data.rows.length > 0) {
             data.rows.forEach(rowData => {
                 const row = document.createElement('tr');
+                // Passing the true 'event' ensures we can check if a human physically typed
                 row.innerHTML = `
                     <td><input type="text" class="category-input" placeholder="Category Name" onchange="updateGoalDropdown()" oninput="saveData()" value="${rowData.name || ''}"></td>
-                    <td><input type="text" class="num-input earned" placeholder="0" oninput="calculate(true); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)" value="${rowData.earned || ''}"></td>
-                    <td><input type="text" class="num-input max" placeholder="0" oninput="calculate(true); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)" value="${rowData.max || ''}"></td>
+                    <td><input type="text" class="num-input earned" placeholder="0" oninput="calculate(event); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)" value="${rowData.earned || ''}"></td>
+                    <td><input type="text" class="num-input max" placeholder="0" oninput="calculate(event); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)" value="${rowData.max || ''}"></td>
                     <td class="row-percent">0.00%</td>
-                    <td><input type="number" class="num-input weight" placeholder="0" oninput="calculate(true); saveData()" value="${rowData.weight || ''}"></td>
+                    <td><input type="number" class="num-input weight" placeholder="0" oninput="calculate(event); saveData()" value="${rowData.weight || ''}"></td>
                     <td><button class="delete-btn" onclick="removeRow(this)">×</button></td>
                 `;
                 tableBody.appendChild(row);
@@ -1036,7 +1039,7 @@
              addRow(); addRow(); addRow();
         }
         
-        calculate(false); // False prevents it from recording a new stat just for loading the page
+        calculate(false); 
         updateGoalDropdown();
         
         const pageTitle = data.courseName.trim() ? data.courseName : "Grade Calculator";
@@ -1320,14 +1323,19 @@
     window.addRow = function() {
         const tbody = document.getElementById('tableBody');
         const row = document.createElement('tr');
-        row.innerHTML = `<td><input type="text" class="category-input" placeholder="Category Name" onchange="updateGoalDropdown()" oninput="saveData()"></td><td><input type="text" class="num-input earned" placeholder="0" oninput="calculate(true); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)"></td><td><input type="text" class="num-input max" placeholder="0" oninput="calculate(true); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)"></td><td class="row-percent">0.00%</td><td><input type="number" class="num-input weight" placeholder="0" oninput="calculate(true); saveData()"></td><td><button class="delete-btn" onclick="removeRow(this)">×</button></td>`;
+        row.innerHTML = `<td><input type="text" class="category-input" placeholder="Category Name" onchange="updateGoalDropdown()" oninput="saveData()"></td><td><input type="text" class="num-input earned" placeholder="0" oninput="calculate(event); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)"></td><td><input type="text" class="num-input max" placeholder="0" oninput="calculate(event); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)"></td><td class="row-percent">0.00%</td><td><input type="number" class="num-input weight" placeholder="0" oninput="calculate(event); saveData()"></td><td><button class="delete-btn" onclick="removeRow(this)">×</button></td>`;
         tbody.appendChild(row);
         saveData();
     }
 
     window.removeRow = function(btn) { btn.closest('tr').remove(); calculate(true); updateGoalDropdown(); saveData(); }
 
-    window.calculate = function(isUserInput = true) {
+    window.calculate = function(e) {
+        // e can be 'false' (silent render), 'true' (force programmatic save), or a browser Event (human input)
+        let isUserInput = false;
+        if (e === true) isUserInput = true; 
+        else if (e && e.type) isUserInput = true; 
+
         let totalWeightedScore = 0, totalWeightUsed = 0, totalMaxPointsForStats = 0, activeRows = 0, completeRows = 0;
         document.querySelectorAll('#tableBody tr').forEach(row => {
             const eVal = row.querySelector('.earned').value; const mVal = row.querySelector('.max').value; const wVal = row.querySelector('.weight').value;
@@ -1359,14 +1367,15 @@
             document.getElementById('finalLetter').innerText = gradeInfo.letter;
         }
 
-        // Exact math hash to block false-positive writes from tab changes or extensions
         const currentHash = `${activeCourseId}_${totalMaxPointsForStats}_${totalWeightedScore}_${activeRows}`;
         
+        // If it's just a visual page load, update the baseline hash and silently exit
         if (!isUserInput) {
             lastCalculatedHash = currentHash;
-            return; // Silently exit
+            return; 
         }
 
+        // Only send to the database if the core math numbers physically changed from what was rendered
         if (currentHash !== lastCalculatedHash) {
             lastCalculatedHash = currentHash;
             if (typeof window.recordCalculationStat === 'function' && activeRows > 0 && activeRows === completeRows) {
@@ -1464,14 +1473,15 @@
         reader.onload = function(e) {
             try {
                 const data = JSON.parse(e.target.result);
-                if(confirm(`Restore backup data? This will add or replace your current courses.`)) {
+                if(confirm(`Restore backup data? This will merge with your current courses.`)) {
                     clearTimeout(window.calcDebounceTimer);
                     
-                    let addedCount = 1;
+                    let prevCount = Object.keys(coursesData).length;
+                    
                     if (data.format === 'multi') {
+                        // Merge courses instead of replacing them completely
+                        Object.assign(coursesData, data.coursesData);
                         activeCourseId = data.activeCourseId;
-                        coursesData = data.coursesData;
-                        addedCount = Object.keys(coursesData).length;
                     } else {
                         const newId = generateId();
                         coursesData[newId] = {
@@ -1480,14 +1490,17 @@
                             rows: data.rows || []
                         };
                         activeCourseId = newId;
-                        addedCount = 1;
                     }
                     
                     persistToStorage(); 
                     renderTabs();       
                     renderCourseUI();   
                     
-                    if(window.trackCourseAdded) window.trackCourseAdded(addedCount); 
+                    // Track exactly how many NEW courses were appended to your workspace
+                    let newCount = Object.keys(coursesData).length;
+                    if (newCount > prevCount && window.trackCourseAdded) {
+                        window.trackCourseAdded(newCount - prevCount); 
+                    }
                     
                     const importedName = file.name.replace(/\.json$/i, '');
                     document.getElementById('exportFileName').value = importedName;
