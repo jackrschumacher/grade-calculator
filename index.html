@@ -1024,7 +1024,6 @@
         if (data.rows && data.rows.length > 0) {
             data.rows.forEach(rowData => {
                 const row = document.createElement('tr');
-                // Passing the true 'event' ensures we can check if a human physically typed
                 row.innerHTML = `
                     <td><input type="text" class="category-input" placeholder="Category Name" onchange="updateGoalDropdown()" oninput="saveData()" value="${rowData.name || ''}"></td>
                     <td><input type="text" class="num-input earned" placeholder="0" oninput="calculate(event); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)" value="${rowData.earned || ''}"></td>
@@ -1331,23 +1330,35 @@
     window.removeRow = function(btn) { btn.closest('tr').remove(); calculate(true); updateGoalDropdown(); saveData(); }
 
     window.calculate = function(e) {
-        // e can be 'false' (silent render), 'true' (force programmatic save), or a browser Event (human input)
         let isUserInput = false;
         if (e === true) isUserInput = true; 
         else if (e && e.type) isUserInput = true; 
 
-        let totalWeightedScore = 0, totalWeightUsed = 0, totalMaxPointsForStats = 0, activeRows = 0, completeRows = 0;
+        let totalWeightedScore = 0, totalWeightUsed = 0, totalMaxPointsForStats = 0, completeRows = 0;
+        
         document.querySelectorAll('#tableBody tr').forEach(row => {
-            const eVal = row.querySelector('.earned').value; const mVal = row.querySelector('.max').value; const wVal = row.querySelector('.weight').value;
-            if (eVal !== '' || mVal !== '' || wVal !== '') { activeRows++; if (eVal !== '' && mVal !== '' && wVal !== '') completeRows++; }
-            const earned = parseScore(eVal); const max = parseScore(mVal); const weight = parseFloat(wVal) || 0;
+            const eVal = row.querySelector('.earned').value; 
+            const mVal = row.querySelector('.max').value; 
+            const wVal = row.querySelector('.weight').value;
+            
+            const earned = parseScore(eVal); 
+            const max = parseScore(mVal); 
+            const weight = parseFloat(wVal) || 0;
             const percentDisplay = row.querySelector('.row-percent');
-            totalMaxPointsForStats += max;
+            
+            // Only treat a row as ready for DB logging if it actually has both points fields filled
+            if (eVal !== '' && mVal !== '') {
+                completeRows++;
+                totalMaxPointsForStats += max;
+            }
+            
             if (max > 0) {
                 percentDisplay.innerText = ((earned / max) * 100).toFixed(2) + '%';
                 totalWeightedScore += (earned / max) * weight;
                 totalWeightUsed += weight;
-            } else { percentDisplay.innerText = '0.00%'; }
+            } else { 
+                percentDisplay.innerText = '0.00%'; 
+            }
         });
 
         const weightDisplay = document.getElementById('weightDisplay');
@@ -1367,19 +1378,26 @@
             document.getElementById('finalLetter').innerText = gradeInfo.letter;
         }
 
-        const currentHash = `${activeCourseId}_${totalMaxPointsForStats}_${totalWeightedScore}_${activeRows}`;
+        const currentHash = `${activeCourseId}_${totalMaxPointsForStats}_${totalWeightedScore}_${completeRows}`;
         
-        // If it's just a visual page load, update the baseline hash and silently exit
+        // If the calculation was triggered by a silent tab switch or page load
         if (!isUserInput) {
             lastCalculatedHash = currentHash;
+            // Prevent imported/loaded data from instantly inflating the global stat trackers
+            if (totalMaxPointsForStats > (sessionMaxPoints[activeCourseId] || 0)) {
+                sessionMaxPoints[activeCourseId] = totalMaxPointsForStats;
+            }
+            if (completeRows > (sessionMaxCategories[activeCourseId] || 0)) {
+                sessionMaxCategories[activeCourseId] = completeRows;
+            }
             return; 
         }
 
-        // Only send to the database if the core math numbers physically changed from what was rendered
+        // Only log to Firebase if the actual math numbers changed
         if (currentHash !== lastCalculatedHash) {
             lastCalculatedHash = currentHash;
-            if (typeof window.recordCalculationStat === 'function' && activeRows > 0 && activeRows === completeRows) {
-                window.recordCalculationStat(totalMaxPointsForStats, activeRows, parseFloat(gradeInfo.gpa));
+            if (typeof window.recordCalculationStat === 'function' && completeRows > 0) {
+                window.recordCalculationStat(totalMaxPointsForStats, completeRows, parseFloat(gradeInfo.gpa));
             }
         }
     }
@@ -1479,7 +1497,6 @@
                     let prevCount = Object.keys(coursesData).length;
                     
                     if (data.format === 'multi') {
-                        // Merge courses instead of replacing them completely
                         Object.assign(coursesData, data.coursesData);
                         activeCourseId = data.activeCourseId;
                     } else {
@@ -1496,7 +1513,6 @@
                     renderTabs();       
                     renderCourseUI();   
                     
-                    // Track exactly how many NEW courses were appended to your workspace
                     let newCount = Object.keys(coursesData).length;
                     if (newCount > prevCount && window.trackCourseAdded) {
                         window.trackCourseAdded(newCount - prevCount); 
