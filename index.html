@@ -224,7 +224,7 @@
             align-items: center;
         }
 
-        .theme-toggle, .stats-btn {
+        .theme-toggle, .stats-btn, .login-btn {
             background: var(--container-bg);
             border: 1px solid var(--border-color);
             color: var(--text-secondary);
@@ -239,7 +239,9 @@
             justify-content: center;
             gap: 6px;
         }
-        .theme-toggle:hover, .stats-btn:hover { background-color: var(--bg-color); }
+        .theme-toggle:hover, .stats-btn:hover, .login-btn:hover { background-color: var(--bg-color); }
+        .login-btn { color: var(--accent-color); border-color: var(--accent-color); }
+        .login-btn:hover { background-color: var(--accent-color); color: white; }
 
         /* --- TABLE --- */
         .table-wrapper {
@@ -466,7 +468,7 @@
             .tabs-wrapper { margin-bottom: 5px; }
             .container { padding: 20px; border-radius: 8px; }
             .header-row { flex-direction: column; gap: 15px; }
-            .header-actions { width: 100%; justify-content: space-between; }
+            .header-actions { width: 100%; justify-content: space-between; flex-wrap: wrap;}
             .course-name-input { font-size: 1.5rem; max-width: 100%; }
 
             .footer-row { flex-direction: column-reverse; gap: 30px; }
@@ -547,19 +549,20 @@
 <div class="tabs-wrapper" id="tabsWrapper">
     <div id="tabsList" style="display:contents;">
         </div>
-    <button class="add-tab-btn" onclick="addCourse()">+ Add Course</button>
+    <button class="add-tab-btn" onclick="window.addCourse()">+ Add Course</button>
 </div>
 
 <div class="container" id="mainAppContainer">
     <div class="header-row">
         <div>
-            <input type="text" id="courseNameInput" class="course-name-input" placeholder="Enter Course Name" oninput="updatePageTitle(this)">
+            <input type="text" id="courseNameInput" class="course-name-input" placeholder="Enter Course Name" oninput="window.updatePageTitle(this)">
             <h2>Course Grade Report</h2>
             <div class="report-date" id="reportDate"></div>
         </div>
         <div class="header-actions">
-            <button class="stats-btn" id="openStatsBtn">📊 Community Stats</button>
-            <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">☀️</button>
+            <button class="login-btn" id="loginBtn" onclick="window.handleAuthClick()">Sign In</button>
+            <button class="stats-btn" id="openStatsBtn" onclick="window.openStatsModal()">📊 Community Stats</button>
+            <button class="theme-toggle" id="themeBtn" onclick="window.toggleTheme()" title="Toggle Dark/Light Mode">☀️</button>
         </div>
     </div>
     
@@ -581,13 +584,13 @@
     </div>
 
     <div class="buttons-row">
-        <button class="btn-std add-btn" onclick="addRow()">+ Add Category</button>
-        <button class="btn-std clear-btn" onclick="clearCourse()">Clear Course</button>
-        <button class="btn-std import-btn" onclick="triggerRestore()">📥 Import JSON</button>
-        <button class="btn-std share-btn" onclick="openShareModal()">📤 Share / Export</button>
+        <button class="btn-std add-btn" onclick="window.addRow()">+ Add Category</button>
+        <button class="btn-std clear-btn" onclick="window.clearCourse()">Clear Course</button>
+        <button class="btn-std import-btn" onclick="window.triggerRestore()">📥 Import JSON</button>
+        <button class="btn-std share-btn" onclick="window.openShareModal()">📤 Share / Export</button>
     </div>
     
-    <input type="file" id="restoreInput" accept=".json" style="display: none;" onchange="handleRestore(this)">
+    <input type="file" id="restoreInput" accept=".json" style="display: none;" onchange="window.handleRestore(this)">
 
     <div class="footer-row">
         <div class="goal-section-wrapper" id="goalSectionWrapper">
@@ -598,15 +601,15 @@
                 <div class="goal-controls">
                     <div class="goal-input-group">
                         <label>Target Grade (%)</label>
-                        <input type="number" id="targetGrade" placeholder="90" oninput="saveData()">
+                        <input type="number" id="targetGrade" placeholder="90" oninput="window.saveData()">
                     </div>
                     <div class="goal-input-group">
                         <label>Calculate For Category</label>
-                        <select id="goalCategorySelect" onmousedown="updateGoalDropdown()">
+                        <select id="goalCategorySelect" onmousedown="window.updateGoalDropdown()">
                             <option value="">Select a category...</option>
                         </select>
                     </div>
-                    <button class="calc-goal-btn" onclick="calculateGoal()">Calculate Needed Score</button>
+                    <button class="calc-goal-btn" onclick="window.calculateGoal()">Calculate Needed Score</button>
                 </div>
                 <div class="goal-result" id="goalResult"></div>
             </div>
@@ -637,7 +640,7 @@
     <div class="modal-content small-modal">
         <div class="modal-header">
             <h2>Share / Export</h2>
-            <button class="close-modal" onclick="closeShareModal()">×</button>
+            <button class="close-modal" onclick="window.closeShareModal()">×</button>
         </div>
 
         <div class="export-filename-group">
@@ -646,11 +649,11 @@
         </div>
         
         <div class="export-grid">
-            <div class="export-option" onclick="downloadConfig()">
+            <div class="export-option" onclick="window.downloadConfig()">
                 <div class="export-icon" style="color: #3498db;">💾</div>
                 <div class="export-label">Save Backup</div>
             </div>
-            <div class="export-option" onclick="triggerRestore()">
+            <div class="export-option" onclick="window.triggerRestore()">
                 <div class="export-icon" style="color: #e67e22;">📂</div>
                 <div class="export-label">Load Backup</div>
             </div>
@@ -658,26 +661,26 @@
                 <div class="export-icon">📄</div>
                 <div class="export-label">Save as PDF</div>
             </div>
-            <div class="export-option" onclick="emailReport()">
+            <div class="export-option" onclick="window.emailReport()">
                 <div class="export-icon">📧</div>
                 <div class="export-label">Email Report</div>
             </div>
-            <div class="export-option" onclick="copyToClipboard()">
+            <div class="export-option" onclick="window.copyToClipboard()">
                 <div class="export-icon">📋</div>
                 <div class="export-label">Copy Text</div>
             </div>
-            <div class="export-option" onclick="downloadImage()">
+            <div class="export-option" onclick="window.downloadImage()">
                 <div class="export-icon">🖼️</div>
                 <div class="export-label">Save Image</div>
             </div>
-            <div class="export-option" onclick="downloadCSV()">
+            <div class="export-option" onclick="window.downloadCSV()">
                 <div class="export-icon">📊</div>
                 <div class="export-label">Download CSV</div>
             </div>
         </div>
 
         <div class="modal-footer">
-            <button class="modal-close-btn" onclick="closeShareModal()">Cancel</button>
+            <button class="modal-close-btn" onclick="window.closeShareModal()">Cancel</button>
         </div>
     </div>
 </div>
@@ -686,7 +689,7 @@
     <div class="modal-content">
         <div class="modal-header">
             <h2>Community Statistics</h2>
-            <button class="close-modal" onclick="closeStats()">×</button>
+            <button class="close-modal" onclick="window.closeStatsModal()">×</button>
         </div>
 
         <div class="stats-grid">
@@ -733,17 +736,17 @@
         </div>
 
         <div class="modal-footer">
-            <button class="modal-close-btn" onclick="closeStats()">Close</button>
+            <button class="modal-close-btn" onclick="window.closeStatsModal()">Close</button>
         </div>
     </div>
 </div>
 
-
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-    import { getDatabase, ref, onValue, update, increment, get, child } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getDatabase, ref, update, increment, get, child, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
+    // --- FIREBASE CONFIGURATION ---
     const firebaseConfig = {
         apiKey: "AIzaSyAnFiOGWezksnsxJlukAEul6XbCmLYoQno",
         authDomain: "grade-calculator-c4684.firebaseapp.com",
@@ -756,9 +759,416 @@
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    signInAnonymously(auth).catch((error) => console.error("Auth Failed:", error));
     const db = getDatabase(app);
 
+    // --- GLOBAL VARIABLES (Attached to Window for UI scope) ---
+    window.currentUser = null;
+    window.activeCourseId = 'course-1';
+    window.coursesData = { 'course-1': { courseName: '', targetGrade: '', rows: [] } };
+    window.calcDebounceTimer = null;
+    window.sessionMaxCategories = {}; 
+    window.sessionMaxPoints = {};
+    
+    let lastCalculatedHash = ""; 
+    let hasLoadedInitialCloudData = false;
+    let myChart = null;
+
+    // --- AUTHENTICATION STATE ---
+    onAuthStateChanged(auth, async (user) => {
+        const loginBtn = document.getElementById('loginBtn');
+        if (user && !user.isAnonymous) {
+            // Real logged in Google User
+            window.currentUser = user;
+            loginBtn.innerText = "Logout (" + user.displayName.split(" ")[0] + ")";
+            
+            // Fetch cloud data only once per session to avoid overwriting ongoing work
+            if (!hasLoadedInitialCloudData) {
+                await fetchCloudData(user.uid);
+                hasLoadedInitialCloudData = true;
+            }
+        } else {
+            // Logged out / Anonymous User
+            window.currentUser = null;
+            loginBtn.innerText = "Sign In with Google";
+            hasLoadedInitialCloudData = false;
+            
+            // If they aren't logged in, log them in anonymously so Community Stats writes still work
+            if (!user) signInAnonymously(auth).catch(err => console.error(err));
+            
+            // Load local storage fallback
+            window.loadLocalData();
+        }
+    });
+
+    window.handleAuthClick = function() {
+        if (window.currentUser) {
+            signOut(auth).then(() => {
+                alert("Logged out successfully. Falling back to local device storage.");
+                window.loadLocalData();
+            });
+        } else {
+            const provider = new GoogleAuthProvider();
+            signInWithPopup(auth, provider).catch(err => alert("Sign In Error: " + err.message));
+        }
+    };
+
+    // --- CLOUD SYNC FUNCTIONS ---
+    async function fetchCloudData(uid) {
+        try {
+            const snapshot = await get(ref(db, `users/${uid}/gradeData`));
+            if (snapshot.exists()) {
+                const parsed = snapshot.val();
+                if (parsed.format === 'multi') {
+                    window.activeCourseId = parsed.activeCourseId || 'course-1';
+                    window.coursesData = parsed.coursesData || {};
+                    if (Object.keys(window.coursesData).length === 0) {
+                        window.coursesData['course-1'] = { courseName: '', targetGrade: '', rows: [] };
+                    }
+                }
+                window.renderTabs();
+                window.renderCourseUI();
+            } else {
+                // First time logging in ever, push current local state to their new cloud account
+                window.persistToStorage();
+            }
+        } catch (e) {
+            console.error("Cloud fetch failed:", e);
+        }
+    }
+
+    // --- STATE MANAGEMENT ---
+    function generateId() {
+        return 'course-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+    }
+
+    function saveCurrentCourseToState() {
+        if (!window.coursesData[window.activeCourseId]) return;
+        
+        window.coursesData[window.activeCourseId] = {
+            courseName: document.getElementById('courseNameInput').value,
+            targetGrade: document.getElementById('targetGrade').value,
+            rows: []
+        };
+        
+        const rows = document.querySelectorAll('#tableBody tr');
+        rows.forEach(row => {
+            window.coursesData[window.activeCourseId].rows.push({
+                name: row.querySelector('.category-input').value,
+                earned: row.querySelector('.earned').value,
+                max: row.querySelector('.max').value,
+                weight: row.querySelector('.weight').value
+            });
+        });
+    }
+
+    window.persistToStorage = function() {
+        const payload = {
+            format: 'multi',
+            activeCourseId: window.activeCourseId,
+            coursesData: window.coursesData
+        };
+        
+        // Always save locally as fallback
+        localStorage.setItem('multiGradeData', JSON.stringify(payload));
+        
+        // Push to Firebase if logged in
+        if (window.currentUser) {
+            set(ref(db, `users/${window.currentUser.uid}/gradeData`), payload);
+        }
+    }
+
+    window.saveData = function() {
+        saveCurrentCourseToState();
+        window.persistToStorage();
+    }
+
+    window.renderTabs = function() {
+        const tabsList = document.getElementById('tabsList');
+        tabsList.innerHTML = '';
+        
+        Object.entries(window.coursesData).forEach(([id, data], index) => {
+            const tab = document.createElement('div');
+            tab.className = 'course-tab' + (id === window.activeCourseId ? ' active' : '');
+            tab.onclick = () => window.switchCourse(id);
+            
+            const title = document.createElement('span');
+            title.textContent = data.courseName.trim() ? data.courseName : `Course ${index + 1}`;
+            tab.appendChild(title);
+            
+            if (Object.keys(window.coursesData).length > 1) {
+                const closeBtn = document.createElement('span');
+                closeBtn.className = 'close-tab';
+                closeBtn.innerHTML = '&times;';
+                closeBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    window.deleteCourse(id);
+                };
+                tab.appendChild(closeBtn);
+            }
+            tabsList.appendChild(tab);
+        });
+    }
+
+    window.switchCourse = function(id) {
+        if (id === window.activeCourseId) return;
+        clearTimeout(window.calcDebounceTimer); 
+        window.saveData(); 
+        window.activeCourseId = id; 
+        window.persistToStorage(); 
+        window.renderTabs();
+        window.renderCourseUI();
+    }
+
+    window.addCourse = function() {
+        clearTimeout(window.calcDebounceTimer);
+        window.saveData(); 
+        const newId = generateId();
+        window.coursesData[newId] = { courseName: '', targetGrade: '', rows: [] };
+        window.activeCourseId = newId;
+        
+        document.getElementById('goalSectionWrapper').classList.remove('visible-in-export');
+        document.getElementById('goalResult').innerHTML = '';
+        
+        window.persistToStorage(); 
+        window.renderTabs();
+        window.renderCourseUI();
+
+        if(window.trackCourseAdded) window.trackCourseAdded(1); 
+    }
+
+    window.deleteCourse = function(id) {
+        if (Object.keys(window.coursesData).length <= 1) return;
+        if (confirm('Are you sure you want to remove this course?')) {
+            clearTimeout(window.calcDebounceTimer);
+            delete window.coursesData[id];
+            if (window.activeCourseId === id) {
+                window.activeCourseId = Object.keys(window.coursesData)[0];
+            }
+            window.persistToStorage();
+            window.renderTabs();
+            window.renderCourseUI();
+        }
+    }
+
+    window.renderCourseUI = function() {
+        const data = window.coursesData[window.activeCourseId];
+        document.getElementById('courseNameInput').value = data.courseName || '';
+        document.getElementById('targetGrade').value = data.targetGrade || '';
+        document.getElementById('goalResult').innerHTML = '';
+        document.getElementById('goalSectionWrapper').classList.remove('visible-in-export');
+        
+        const tableBody = document.getElementById('tableBody');
+        tableBody.innerHTML = ''; 
+        
+        if (data.rows && data.rows.length > 0) {
+            data.rows.forEach(rowData => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><input type="text" class="category-input" placeholder="Category Name" onchange="window.updateGoalDropdown()" oninput="window.saveData()" value="${rowData.name || ''}"></td>
+                    <td><input type="text" class="num-input earned" placeholder="0" oninput="window.calculate(event); window.saveData()" onfocus="window.handleFocus(this)" onblur="window.handleBlur(this)" value="${rowData.earned || ''}"></td>
+                    <td><input type="text" class="num-input max" placeholder="0" oninput="window.calculate(event); window.saveData()" onfocus="window.handleFocus(this)" onblur="window.handleBlur(this)" value="${rowData.max || ''}"></td>
+                    <td class="row-percent">0.00%</td>
+                    <td><input type="number" class="num-input weight" placeholder="0" oninput="window.calculate(event); window.saveData()" value="${rowData.weight || ''}"></td>
+                    <td><button class="delete-btn" onclick="window.removeRow(this)">×</button></td>
+                `;
+                tableBody.appendChild(row);
+            });
+        } else {
+             window.addRow(); window.addRow(); window.addRow();
+        }
+        
+        window.calculate(false); 
+        window.updateGoalDropdown();
+        
+        const pageTitle = data.courseName.trim() ? data.courseName : "Grade Calculator";
+        document.title = pageTitle;
+    }
+
+    // --- MATH & LOGIC ---
+    window.getGradeInfo = function(percentage) {
+        const p = Math.round(percentage * 100) / 100;
+        if (p >= 93) return { gpa: '4.0', letter: 'A' };
+        if (p >= 90) return { gpa: '3.7', letter: 'A-' };
+        if (p >= 87) return { gpa: '3.3', letter: 'B+' };
+        if (p >= 83) return { gpa: '3.0', letter: 'B' };
+        if (p >= 80) return { gpa: '2.7', letter: 'B-' };
+        if (p >= 77) return { gpa: '2.3', letter: 'C+' };
+        if (p >= 73) return { gpa: '2.0', letter: 'C' };
+        if (p >= 70) return { gpa: '1.7', letter: 'C-' };
+        if (p >= 67) return { gpa: '1.3', letter: 'D+' };
+        if (p >= 63) return { gpa: '1.0', letter: 'D' };
+        if (p >= 60) return { gpa: '0.7', letter: 'D-' };
+        return { gpa: '0.0', letter: 'F' };
+    }
+
+    function parseScore(input) {
+        if (!input) return 0;
+        const clean = input.toString().replace(/[^0-9\.\+\-\*\/\(\)]/g, '');
+        if (!clean) return 0;
+        try { const result = new Function('return ' + clean)(); return isFinite(result) ? result : 0; } catch (e) { return 0; }
+    }
+
+    window.handleFocus = function(input) { if (input.dataset.raw) input.value = input.dataset.raw; }
+    window.handleBlur = function(input) {
+        input.dataset.raw = input.value;
+        if (input.value.trim() !== "") {
+            const result = parseScore(input.value);
+            input.value = Number.isInteger(result) ? result : result.toFixed(2);
+        }
+    }
+
+    window.updatePageTitle = function(input) {
+        const val = input.value.trim();
+        document.title = val ? val : "Grade Calculator";
+        window.coursesData[window.activeCourseId].courseName = val; 
+        window.renderTabs(); 
+        window.saveData();
+    }
+
+    window.addRow = function() {
+        const tbody = document.getElementById('tableBody');
+        const row = document.createElement('tr');
+        row.innerHTML = `<td><input type="text" class="category-input" placeholder="Category Name" onchange="window.updateGoalDropdown()" oninput="window.saveData()"></td><td><input type="text" class="num-input earned" placeholder="0" oninput="window.calculate(event); window.saveData()" onfocus="window.handleFocus(this)" onblur="window.handleBlur(this)"></td><td><input type="text" class="num-input max" placeholder="0" oninput="window.calculate(event); window.saveData()" onfocus="window.handleFocus(this)" onblur="window.handleBlur(this)"></td><td class="row-percent">0.00%</td><td><input type="number" class="num-input weight" placeholder="0" oninput="window.calculate(event); window.saveData()"></td><td><button class="delete-btn" onclick="window.removeRow(this)">×</button></td>`;
+        tbody.appendChild(row);
+        window.saveData();
+    }
+
+    window.removeRow = function(btn) { btn.closest('tr').remove(); window.calculate(true); window.updateGoalDropdown(); window.saveData(); }
+
+    window.calculate = function(e) {
+        let isUserInput = false;
+        if (e === true) isUserInput = true; 
+        else if (e && e.type) isUserInput = true; 
+
+        let totalWeightedScore = 0, totalWeightUsed = 0, totalMaxPointsForStats = 0, completeRows = 0;
+        
+        document.querySelectorAll('#tableBody tr').forEach(row => {
+            const eVal = row.querySelector('.earned').value; 
+            const mVal = row.querySelector('.max').value; 
+            const wVal = row.querySelector('.weight').value;
+            
+            const earned = parseScore(eVal); 
+            const max = parseScore(mVal); 
+            const weight = parseFloat(wVal) || 0;
+            const percentDisplay = row.querySelector('.row-percent');
+            
+            // Note: Does NOT require Weight to be filled out to count towards DB stats! (Future Assignment fix)
+            if (eVal.trim() !== '' && mVal.trim() !== '') {
+                completeRows++;
+                totalMaxPointsForStats += max;
+            }
+            
+            if (max > 0) {
+                percentDisplay.innerText = ((earned / max) * 100).toFixed(2) + '%';
+                totalWeightedScore += (earned / max) * weight;
+                totalWeightUsed += weight;
+            } else { 
+                percentDisplay.innerText = '0.00%'; 
+            }
+        });
+
+        const weightDisplay = document.getElementById('weightDisplay');
+        if (weightDisplay) {
+            weightDisplay.innerText = `Total Weight: ${totalWeightUsed}%`;
+            weightDisplay.classList.toggle('total-weight-warning', totalWeightUsed !== 100 && totalWeightUsed !== 0);
+        }
+
+        const finalGradeDisplay = document.getElementById('finalGrade');
+        let gradeInfo = { gpa: '0.0', letter: 'F' };
+
+        if (finalGradeDisplay) {
+            const relativeGrade = totalWeightUsed > 0 ? (totalWeightedScore / totalWeightUsed) * 100 : 0;
+            finalGradeDisplay.innerText = relativeGrade.toFixed(2) + '%';
+            gradeInfo = window.getGradeInfo(relativeGrade);
+            document.getElementById('finalGPA').innerText = gradeInfo.gpa;
+            document.getElementById('finalLetter').innerText = gradeInfo.letter;
+        }
+
+        const currentHash = `${window.activeCourseId}_${totalMaxPointsForStats}_${totalWeightedScore}_${completeRows}`;
+        
+        // Prevent tab switching or loading an import from triggering a ghost database write
+        if (!isUserInput) {
+            lastCalculatedHash = currentHash;
+            if (!window.sessionMaxPoints[window.activeCourseId] || totalMaxPointsForStats > window.sessionMaxPoints[window.activeCourseId]) {
+                window.sessionMaxPoints[window.activeCourseId] = totalMaxPointsForStats;
+            }
+            if (!window.sessionMaxCategories[window.activeCourseId] || completeRows > window.sessionMaxCategories[window.activeCourseId]) {
+                window.sessionMaxCategories[window.activeCourseId] = completeRows;
+            }
+            return; 
+        }
+
+        // Database write
+        if (currentHash !== lastCalculatedHash) {
+            lastCalculatedHash = currentHash;
+            if (typeof window.recordCalculationStat === 'function' && completeRows > 0) {
+                window.recordCalculationStat(totalMaxPointsForStats, completeRows, parseFloat(gradeInfo.gpa));
+            }
+        }
+    }
+
+    window.updateGoalDropdown = function() {
+        const select = document.getElementById('goalCategorySelect');
+        const rows = document.querySelectorAll('#tableBody tr');
+        const currentVal = select.value;
+        select.innerHTML = '<option value="">Select a category...</option>';
+        rows.forEach((row, index) => {
+            const nameInput = row.querySelector('.category-input').value;
+            const option = document.createElement('option');
+            option.value = index; option.text = nameInput.trim() !== "" ? nameInput : `Row ${index + 1}`;
+            select.appendChild(option);
+        });
+        if (currentVal !== "" && currentVal < rows.length) select.value = currentVal;
+    }
+
+    window.calculateGoal = function() {
+        const target = parseFloat(document.getElementById('targetGrade').value);
+        const selectedIndex = document.getElementById('goalCategorySelect').value;
+        const resultDiv = document.getElementById('goalResult');
+        const goalSectionWrapper = document.getElementById('goalSectionWrapper');
+
+        if (isNaN(target)) { resultDiv.innerHTML = "Please enter a valid target grade percentage."; return; }
+        if (selectedIndex === "") { resultDiv.innerHTML = "Please select a category to calculate for."; return; }
+        window.saveData();
+
+        let sumOfOthers = 0, targetMax = 0, targetWeight = 0, targetName = "";
+        const rows = document.querySelectorAll('#tableBody tr');
+        
+        rows.forEach((row, index) => {
+            const earned = parseScore(row.querySelector('.earned').value); const max = parseScore(row.querySelector('.max').value); const weight = parseFloat(row.querySelector('.weight').value) || 0;
+            if (index == selectedIndex) { targetMax = max; targetWeight = weight; targetName = row.querySelector('.category-input').value || "Selected Category"; } 
+            else if (max > 0) sumOfOthers += (earned / max) * weight;
+        });
+
+        if (targetWeight === 0 || targetMax === 0) { resultDiv.innerHTML = `Category <strong>${targetName}</strong> needs valid points/weight first.`; return; }
+
+        const pointsNeeded = ((target - sumOfOthers) / targetWeight) * targetMax;
+        resultDiv.innerHTML = `To get a <strong>${target}%</strong> overall, you need:<br><span style="font-size: 1.2em; color: var(--accent-hover);">${pointsNeeded.toFixed(2)} / ${targetMax} points (${((pointsNeeded / targetMax) * 100).toFixed(2)}%)</span><br>on <em>${targetName}</em>.`;
+        goalSectionWrapper.classList.add('visible-in-export');
+
+        const targetRow = rows[selectedIndex];
+        if (targetRow) {
+            const earnedInput = targetRow.querySelector('.earned');
+            if (earnedInput && earnedInput.value === "") { 
+                earnedInput.value = pointsNeeded.toFixed(2); earnedInput.style.transition = "background-color 0.3s"; earnedInput.style.backgroundColor = "var(--mint-bg)"; setTimeout(() => { earnedInput.style.backgroundColor = ""; }, 1000); window.saveData();
+            } else if (earnedInput && confirm(`Update ${targetName} score to ${pointsNeeded.toFixed(2)}?`)) {
+                 earnedInput.value = pointsNeeded.toFixed(2); window.saveData(); 
+            }
+        }
+        window.calculate(true);
+    }
+
+    window.clearCourse = function() {
+        if(confirm("Are you sure you want to clear this course?")) {
+            clearTimeout(window.calcDebounceTimer);
+            window.coursesData[window.activeCourseId] = { courseName: '', targetGrade: '', rows: [] };
+            window.persistToStorage();
+            window.renderTabs();
+            window.renderCourseUI();
+        }
+    }
+
+    // --- COMMUNITY STATS SYSTEM ---
     function getMonthKey() {
         const d = new Date();
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -773,12 +1183,6 @@
         return date.toLocaleDateString('default', { month: 'long', year: 'numeric' });
     }
 
-    window.calcDebounceTimer = null;
-    
-    // Track stats individually for each tab to prevent points inflating
-    let sessionMaxCategories = {}; 
-    let sessionMaxPoints = {};
-
     window.recordCalculationStat = function(currentTotalPoints, categoryCount, currentGPA) {
         clearTimeout(window.calcDebounceTimer);
         window.calcDebounceTimer = setTimeout(() => {
@@ -786,18 +1190,18 @@
                 const monthKey = getMonthKey();
                 const updates = {};
                 
-                let maxCats = sessionMaxCategories[activeCourseId] || 0;
+                let maxCats = window.sessionMaxCategories[window.activeCourseId] || 0;
                 let categoriesToAdd = 0;
                 if (categoryCount > maxCats) {
                     categoriesToAdd = categoryCount - maxCats;
-                    sessionMaxCategories[activeCourseId] = categoryCount;
+                    window.sessionMaxCategories[window.activeCourseId] = categoryCount;
                 }
 
-                let maxPts = sessionMaxPoints[activeCourseId] || 0;
+                let maxPts = window.sessionMaxPoints[window.activeCourseId] || 0;
                 let pointsToAdd = 0;
                 if (currentTotalPoints > maxPts) {
                     pointsToAdd = currentTotalPoints - maxPts;
-                    sessionMaxPoints[activeCourseId] = currentTotalPoints;
+                    window.sessionMaxPoints[window.activeCourseId] = currentTotalPoints;
                 }
 
                 updates['stats/global/grades_calculated'] = increment(1);
@@ -837,13 +1241,6 @@
         window.trackExport(); 
     };
 
-    function getLetterFromGPA(gpa) {
-        if (gpa >= 4.0) return 'A'; if (gpa >= 3.7) return 'A-'; if (gpa >= 3.3) return 'B+';
-        if (gpa >= 3.0) return 'B'; if (gpa >= 2.7) return 'B-'; if (gpa >= 2.3) return 'C+';
-        if (gpa >= 2.0) return 'C'; if (gpa >= 1.7) return 'C-'; if (gpa >= 1.3) return 'D+';
-        if (gpa >= 1.0) return 'D'; if (gpa >= 0.7) return 'D-'; return 'F';
-    }
-
     window.loadDashboardStats = async function() {
         const dbRef = ref(db);
         try {
@@ -860,7 +1257,7 @@
 
                 if (global.grades_calculated > 0 && global.total_gpa_sum > 0) {
                     const avgGpa = global.total_gpa_sum / global.grades_calculated;
-                    const letter = getLetterFromGPA(avgGpa);
+                    const letter = window.getGradeInfo(avgGpa).letter;
                     document.getElementById('dashAvgGrade').innerText = `${letter} (${avgGpa.toFixed(2)})`;
                 } else {
                     document.getElementById('dashAvgGrade').innerText = "N/A";
@@ -895,177 +1292,7 @@
             }
         } catch (error) { console.error(error); }
     }
-</script>
 
-<script>
-    // --- MULTI-COURSE STATE MANAGEMENT ---
-    let activeCourseId = 'course-1';
-    let coursesData = {
-        'course-1': { courseName: '', targetGrade: '', rows: [] }
-    };
-    
-    let lastCalculatedHash = ""; 
-
-    function generateId() {
-        return 'course-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
-    }
-
-    function saveCurrentCourseToState() {
-        if (!coursesData[activeCourseId]) return;
-        
-        coursesData[activeCourseId] = {
-            courseName: document.getElementById('courseNameInput').value,
-            targetGrade: document.getElementById('targetGrade').value,
-            rows: []
-        };
-        
-        const rows = document.querySelectorAll('#tableBody tr');
-        rows.forEach(row => {
-            coursesData[activeCourseId].rows.push({
-                name: row.querySelector('.category-input').value,
-                earned: row.querySelector('.earned').value,
-                max: row.querySelector('.max').value,
-                weight: row.querySelector('.weight').value
-            });
-        });
-    }
-
-    function persistToStorage() {
-        localStorage.setItem('multiGradeData', JSON.stringify({
-            format: 'multi',
-            activeCourseId: activeCourseId,
-            coursesData: coursesData
-        }));
-    }
-
-    window.saveData = function() {
-        saveCurrentCourseToState();
-        persistToStorage();
-    }
-
-    window.renderTabs = function() {
-        const tabsList = document.getElementById('tabsList');
-        tabsList.innerHTML = '';
-        
-        Object.entries(coursesData).forEach(([id, data], index) => {
-            const tab = document.createElement('div');
-            tab.className = 'course-tab' + (id === activeCourseId ? ' active' : '');
-            tab.onclick = () => switchCourse(id);
-            
-            const title = document.createElement('span');
-            title.textContent = data.courseName.trim() ? data.courseName : `Course ${index + 1}`;
-            tab.appendChild(title);
-            
-            if (Object.keys(coursesData).length > 1) {
-                const closeBtn = document.createElement('span');
-                closeBtn.className = 'close-tab';
-                closeBtn.innerHTML = '&times;';
-                closeBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    deleteCourse(id);
-                };
-                tab.appendChild(closeBtn);
-            }
-            tabsList.appendChild(tab);
-        });
-    }
-
-    window.switchCourse = function(id) {
-        if (id === activeCourseId) return;
-        clearTimeout(window.calcDebounceTimer); 
-        saveData(); 
-        activeCourseId = id; 
-        persistToStorage(); 
-        renderTabs();
-        renderCourseUI();
-    }
-
-    window.addCourse = function() {
-        clearTimeout(window.calcDebounceTimer);
-        saveData(); 
-        const newId = generateId();
-        coursesData[newId] = { courseName: '', targetGrade: '', rows: [] };
-        activeCourseId = newId;
-        
-        document.getElementById('goalSectionWrapper').classList.remove('visible-in-export');
-        document.getElementById('goalResult').innerHTML = '';
-        
-        persistToStorage(); 
-        renderTabs();
-        renderCourseUI();
-
-        if(window.trackCourseAdded) window.trackCourseAdded(1); 
-    }
-
-    window.deleteCourse = function(id) {
-        if (Object.keys(coursesData).length <= 1) return;
-        if (confirm('Are you sure you want to remove this course?')) {
-            clearTimeout(window.calcDebounceTimer);
-            delete coursesData[id];
-            if (activeCourseId === id) {
-                activeCourseId = Object.keys(coursesData)[0];
-            }
-            persistToStorage();
-            renderTabs();
-            renderCourseUI();
-        }
-    }
-
-    function renderCourseUI() {
-        const data = coursesData[activeCourseId];
-        document.getElementById('courseNameInput').value = data.courseName || '';
-        document.getElementById('targetGrade').value = data.targetGrade || '';
-        document.getElementById('goalResult').innerHTML = '';
-        document.getElementById('goalSectionWrapper').classList.remove('visible-in-export');
-        
-        const tableBody = document.getElementById('tableBody');
-        tableBody.innerHTML = ''; 
-        
-        if (data.rows && data.rows.length > 0) {
-            data.rows.forEach(rowData => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td><input type="text" class="category-input" placeholder="Category Name" onchange="updateGoalDropdown()" oninput="saveData()" value="${rowData.name || ''}"></td>
-                    <td><input type="text" class="num-input earned" placeholder="0" oninput="calculate(event); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)" value="${rowData.earned || ''}"></td>
-                    <td><input type="text" class="num-input max" placeholder="0" oninput="calculate(event); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)" value="${rowData.max || ''}"></td>
-                    <td class="row-percent">0.00%</td>
-                    <td><input type="number" class="num-input weight" placeholder="0" oninput="calculate(event); saveData()" value="${rowData.weight || ''}"></td>
-                    <td><button class="delete-btn" onclick="removeRow(this)">×</button></td>
-                `;
-                tableBody.appendChild(row);
-            });
-        } else {
-             addRow(); addRow(); addRow();
-        }
-        
-        calculate(false); 
-        updateGoalDropdown();
-        
-        const pageTitle = data.courseName.trim() ? data.courseName : "Grade Calculator";
-        document.title = pageTitle;
-    }
-
-    // --- UI LOGIC ---
-    window.getGradeInfo = function(percentage) {
-        const p = Math.round(percentage * 100) / 100;
-        if (p >= 93) return { gpa: '4.0', letter: 'A' };
-        if (p >= 90) return { gpa: '3.7', letter: 'A-' };
-        if (p >= 87) return { gpa: '3.3', letter: 'B+' };
-        if (p >= 83) return { gpa: '3.0', letter: 'B' };
-        if (p >= 80) return { gpa: '2.7', letter: 'B-' };
-        if (p >= 77) return { gpa: '2.3', letter: 'C+' };
-        if (p >= 73) return { gpa: '2.0', letter: 'C' };
-        if (p >= 70) return { gpa: '1.7', letter: 'C-' };
-        if (p >= 67) return { gpa: '1.3', letter: 'D+' };
-        if (p >= 63) return { gpa: '1.0', letter: 'D' };
-        if (p >= 60) return { gpa: '0.7', letter: 'D-' };
-        return { gpa: '0.0', letter: 'F' };
-    }
-
-    document.getElementById('reportDate').innerText = new Date().toLocaleDateString();
-
-    /* --- CHART JS SETUP --- */
-    let myChart = null;
     function renderChart(labels, gradeData, exportData, pointsData) {
         const ctx = document.getElementById('statsChart').getContext('2d');
         if (myChart) myChart.destroy();
@@ -1098,36 +1325,7 @@
         });
     }
 
-    /* --- MODAL LOGIC --- */
-    const statsModal = document.getElementById('statsModal');
-    const shareModal = document.getElementById('shareModal');
-    
-    document.getElementById('openStatsBtn').onclick = function() {
-        statsModal.style.display = 'flex';
-        if(typeof window.loadDashboardStats === 'function') window.loadDashboardStats();
-    };
-    function closeStats() { statsModal.style.display = 'none'; }
-
-    window.openShareModal = function() {
-        let nameInput = document.getElementById('exportFileName');
-        if (!nameInput.value.trim()) {
-            let currentCourse = document.getElementById('courseNameInput').value.trim();
-            if (!currentCourse) currentCourse = "Grade_Report";
-            const safeName = currentCourse.replace(/[^a-z0-9_\-]/gi, '_');
-            nameInput.value = safeName;
-        }
-        
-        shareModal.style.display = 'flex'; 
-    }
-    
-    window.closeShareModal = function() { shareModal.style.display = 'none'; }
-
-    window.onclick = function(event) {
-        if (event.target == statsModal) closeStats();
-        if (event.target == shareModal) closeShareModal();
-    };
-
-    /* --- EXPORT FUNCTIONS --- */
+    /* --- BACKUP & RESTORE LOGIC --- */
     function getCustomFileName(extension) {
         let name = document.getElementById('exportFileName').value.trim();
         if (!name) name = "Grade_Report";
@@ -1136,352 +1334,24 @@
         return `${name}.${extension}`;
     }
 
-    function getSummaryText() {
-        const courseName = document.getElementById('courseNameInput').value || "Course Grade Report";
-        const finalGrade = document.getElementById('finalGrade').innerText;
-        let text = `Course: ${courseName}\nFinal Grade: ${finalGrade}\n\n`;
-        
-        const rows = document.querySelectorAll('#tableBody tr');
-        rows.forEach(row => {
-            const cat = row.querySelector('.category-input').value || "Category";
-            const earned = row.querySelector('.earned').value || 0;
-            const max = row.querySelector('.max').value || 0;
-            const weight = row.querySelector('.weight').value || 0;
-            if(cat && max) {
-               text += `- ${cat}: ${earned}/${max} (Weight: ${weight}%)\n`;
-            }
-        });
-        
-        const goalText = document.getElementById('goalResult').innerText;
-        if (goalText && goalText.trim().length > 0) {
-            text += `\nGoal Analysis: ${goalText.replace(/\n+/g, ' ').trim()}`;
-        }
-        return text;
-    }
-
-    window.copyToClipboard = function() {
-        if(window.trackExport) window.trackExport();
-        navigator.clipboard.writeText(getSummaryText()).then(() => { alert("Report copied to clipboard!"); closeShareModal(); });
-    }
-
-    window.emailReport = function() {
-        if(window.trackExport) window.trackExport(); 
-        const subject = encodeURIComponent(`${document.getElementById('courseNameInput').value || "Course Grade Report"} - Grade Report`);
-        window.location.href = `mailto:?subject=${subject}&body=${encodeURIComponent(getSummaryText())}`;
-        closeShareModal();
-    }
-
-    window.downloadCSV = function() {
-        if(window.trackExport) window.trackExport(); 
-        let csvContent = "data:text/csv;charset=utf-8,Category Name,Points Earned,Total Points,Weight (%)\n";
-        
-        document.querySelectorAll('#tableBody tr').forEach(row => {
-            const cat = row.querySelector('.category-input').value || "";
-            const max = row.querySelector('.max').value || 0;
-            if(max) csvContent += `${cat.includes(',') ? `"${cat}"` : cat},${row.querySelector('.earned').value || 0},${max},${row.querySelector('.weight').value || 0}\n`;
-        });
-        
-        csvContent += `\nFinal Grade,,${document.getElementById('finalGrade').innerText},`;
-        const link = document.createElement("a");
-        link.setAttribute("href", encodeURI(csvContent));
-        link.setAttribute("download", getCustomFileName('csv'));
-        document.body.appendChild(link); link.click(); document.body.removeChild(link);
-        closeShareModal();
-    }
-
-    window.downloadImage = function() {
-        if(window.trackExport) window.trackExport(); 
-        const originalContainer = document.getElementById('mainAppContainer');
-        const clone = originalContainer.cloneNode(true);
-        
-        clone.style.setProperty('--bg-color', '#f4f6f8'); clone.style.setProperty('--container-bg', '#ffffff'); clone.style.setProperty('--text-main', '#2c3e50'); clone.style.setProperty('--text-secondary', '#636e72'); clone.style.setProperty('--border-color', '#dfe6e9'); clone.style.setProperty('--accent-color', '#3498db'); clone.style.setProperty('--mint-bg', '#e8f6f3'); clone.style.setProperty('--result-bg', '#ecf0f1'); clone.style.setProperty('--card-bg', '#f8f9fa');
-        
-        clone.style.width = '1000px'; clone.style.position = 'absolute'; clone.style.left = '-9999px'; clone.style.top = '0'; clone.style.backgroundColor = '#ffffff'; clone.style.color = '#2c3e50'; clone.style.padding = '60px'; clone.classList.remove('container'); 
-
-        const buttons = clone.querySelector('.buttons-row'); if(buttons) buttons.remove();
-        const themeToggle = clone.querySelector('.header-actions'); if(themeToggle) themeToggle.remove();
-        
-        const goalWrapper = clone.querySelector('#goalSectionWrapper');
-        if (goalWrapper && !goalWrapper.classList.contains('visible-in-export')) {
-            goalWrapper.remove();
-            const footer = clone.querySelector('.footer-row');
-            if(footer) { footer.style.justifyContent = 'flex-end'; const resultBoxWrapper = clone.querySelector('.result-box-wrapper'); if(resultBoxWrapper) resultBoxWrapper.style.flex = '0 0 400px'; }
-        } else if (goalWrapper) {
-            const goalControls = clone.querySelector('.goal-controls'); if(goalControls) goalControls.remove();
-            const goalSection = clone.querySelector('#goalSection'); goalSection.style.backgroundColor = '#f0fdf4'; goalSection.style.borderLeft = '6px solid #1abc9c'; goalSection.style.color = '#2c3e50';
-        }
-
-        const origInputs = originalContainer.querySelectorAll('input, select');
-        const cloneInputs = clone.querySelectorAll('input, select');
-        origInputs.forEach((input, i) => {
-            if(cloneInputs[i]) {
-                const textSpan = document.createElement('div');
-                textSpan.textContent = input.value;
-                textSpan.style.fontFamily = 'inherit'; textSpan.style.width = '100%';
-                
-                if (input.classList.contains('course-name-input')) { textSpan.style.fontSize = '32px'; textSpan.style.fontWeight = '800'; textSpan.style.marginBottom = '10px'; textSpan.style.color = '#2c3e50'; } 
-                else if (input.classList.contains('category-input')) { textSpan.style.fontSize = '14px'; textSpan.style.fontWeight = '500'; textSpan.style.textAlign = 'left'; } 
-                else { textSpan.style.fontSize = '14px'; textSpan.style.textAlign = 'right'; }
-
-                cloneInputs[i].parentNode.replaceChild(textSpan, cloneInputs[i]);
-            }
-        });
-
-        const origRows = originalContainer.querySelectorAll('#tableBody tr');
-        const cloneRows = clone.querySelectorAll('#tableBody tr');
-        origRows.forEach((row, i) => {
-             if(!row.querySelector('.max').value) { if(cloneRows[i]) cloneRows[i].remove(); } 
-             else { if(cloneRows[i]) { const delBtn = cloneRows[i].querySelector('.delete-btn'); if(delBtn) delBtn.parentElement.remove(); } }
-        });
-        
-        const headers = clone.querySelectorAll('th'); if(headers.length > 0) headers[headers.length-1].remove();
-
-        document.body.appendChild(clone);
-        html2canvas(clone, { scale: 2, backgroundColor: '#ffffff', useCORS: true }).then(canvas => {
-            const link = document.createElement('a'); link.download = getCustomFileName('png'); link.href = canvas.toDataURL(); link.click(); document.body.removeChild(clone); closeShareModal();
-        });
-    }
-
-    /* --- THEME LOGIC --- */
-    function initTheme() {
-        const savedTheme = localStorage.getItem('theme');
-        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
-            document.documentElement.setAttribute('data-theme', 'dark');
-            document.getElementById('themeBtn').innerText = '🌙';
-        } else {
-            document.documentElement.setAttribute('data-theme', 'light');
-            document.getElementById('themeBtn').innerText = '☀️';
-        }
-    }
-
-    window.toggleTheme = function() {
-        const newTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
-        document.getElementById('themeBtn').innerText = newTheme === 'dark' ? '🌙' : '☀️';
-        if (statsModal.style.display === 'flex' && typeof window.loadDashboardStats === 'function') window.loadDashboardStats();
-    }
-
-    /* --- DATA LOAD LOGIC --- */
-    function loadData() {
-        const savedMulti = localStorage.getItem('multiGradeData');
-        const savedSingle = localStorage.getItem('gradeData');
-
-        if (savedMulti) {
-            try {
-                const parsed = JSON.parse(savedMulti);
-                if (parsed.format === 'multi') {
-                    activeCourseId = parsed.activeCourseId || 'course-1';
-                    coursesData = parsed.coursesData || {};
-                    
-                    if (Object.keys(coursesData).length === 0) {
-                        coursesData['course-1'] = { courseName: '', targetGrade: '', rows: [] };
-                    }
-                }
-            } catch (e) { console.error("Error loading multi-course data", e); }
-        } else if (savedSingle) {
-            try {
-                coursesData['course-1'] = JSON.parse(savedSingle);
-            } catch(e) {}
-        } else {
-            if(window.trackCourseAdded) window.trackCourseAdded(1);
-        }
-        
-        if (!coursesData[activeCourseId]) activeCourseId = Object.keys(coursesData)[0];
-
-        renderTabs();
-        renderCourseUI();
-    }
-
-    /* --- CALCULATOR LOGIC --- */
-    function parseScore(input) {
-        if (!input) return 0;
-        const clean = input.toString().replace(/[^0-9\.\+\-\*\/\(\)]/g, '');
-        if (!clean) return 0;
-        try { const result = new Function('return ' + clean)(); return isFinite(result) ? result : 0; } catch (e) { return 0; }
-    }
-
-    window.handleFocus = function(input) { if (input.dataset.raw) input.value = input.dataset.raw; }
-    window.handleBlur = function(input) {
-        input.dataset.raw = input.value;
-        if (input.value.trim() !== "") {
-            const result = parseScore(input.value);
-            input.value = Number.isInteger(result) ? result : result.toFixed(2);
-        }
-    }
-
-    window.updatePageTitle = function(input) {
-        const val = input.value.trim();
-        document.title = val ? val : "Grade Calculator";
-        coursesData[activeCourseId].courseName = val; 
-        renderTabs(); 
-        saveData();
-    }
-
-    window.addRow = function() {
-        const tbody = document.getElementById('tableBody');
-        const row = document.createElement('tr');
-        row.innerHTML = `<td><input type="text" class="category-input" placeholder="Category Name" onchange="updateGoalDropdown()" oninput="saveData()"></td><td><input type="text" class="num-input earned" placeholder="0" oninput="calculate(event); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)"></td><td><input type="text" class="num-input max" placeholder="0" oninput="calculate(event); saveData()" onfocus="handleFocus(this)" onblur="handleBlur(this)"></td><td class="row-percent">0.00%</td><td><input type="number" class="num-input weight" placeholder="0" oninput="calculate(event); saveData()"></td><td><button class="delete-btn" onclick="removeRow(this)">×</button></td>`;
-        tbody.appendChild(row);
-        saveData();
-    }
-
-    window.removeRow = function(btn) { btn.closest('tr').remove(); calculate(true); updateGoalDropdown(); saveData(); }
-
-    window.calculate = function(e) {
-        let isUserInput = false;
-        if (e === true) isUserInput = true; 
-        else if (e && e.type) isUserInput = true; 
-
-        let totalWeightedScore = 0, totalWeightUsed = 0, totalMaxPointsForStats = 0, completeRows = 0;
-        
-        document.querySelectorAll('#tableBody tr').forEach(row => {
-            const eVal = row.querySelector('.earned').value; 
-            const mVal = row.querySelector('.max').value; 
-            const wVal = row.querySelector('.weight').value;
-            
-            const earned = parseScore(eVal); 
-            const max = parseScore(mVal); 
-            const weight = parseFloat(wVal) || 0;
-            const percentDisplay = row.querySelector('.row-percent');
-            
-            // Only treat a row as ready for DB logging if it actually has both points fields filled
-            if (eVal !== '' && mVal !== '') {
-                completeRows++;
-                totalMaxPointsForStats += max;
-            }
-            
-            if (max > 0) {
-                percentDisplay.innerText = ((earned / max) * 100).toFixed(2) + '%';
-                totalWeightedScore += (earned / max) * weight;
-                totalWeightUsed += weight;
-            } else { 
-                percentDisplay.innerText = '0.00%'; 
-            }
-        });
-
-        const weightDisplay = document.getElementById('weightDisplay');
-        if (weightDisplay) {
-            weightDisplay.innerText = `Total Weight: ${totalWeightUsed}%`;
-            weightDisplay.classList.toggle('total-weight-warning', totalWeightUsed !== 100 && totalWeightUsed !== 0);
-        }
-
-        const finalGradeDisplay = document.getElementById('finalGrade');
-        let gradeInfo = { gpa: '0.0', letter: 'F' };
-
-        if (finalGradeDisplay) {
-            const relativeGrade = totalWeightUsed > 0 ? (totalWeightedScore / totalWeightUsed) * 100 : 0;
-            finalGradeDisplay.innerText = relativeGrade.toFixed(2) + '%';
-            gradeInfo = getGradeInfo(relativeGrade);
-            document.getElementById('finalGPA').innerText = gradeInfo.gpa;
-            document.getElementById('finalLetter').innerText = gradeInfo.letter;
-        }
-
-        const currentHash = `${activeCourseId}_${totalMaxPointsForStats}_${totalWeightedScore}_${completeRows}`;
-        
-        // If the calculation was triggered by a silent tab switch or page load
-        if (!isUserInput) {
-            lastCalculatedHash = currentHash;
-            // Prevent imported/loaded data from instantly inflating the global stat trackers
-            if (totalMaxPointsForStats > (sessionMaxPoints[activeCourseId] || 0)) {
-                sessionMaxPoints[activeCourseId] = totalMaxPointsForStats;
-            }
-            if (completeRows > (sessionMaxCategories[activeCourseId] || 0)) {
-                sessionMaxCategories[activeCourseId] = completeRows;
-            }
-            return; 
-        }
-
-        // Only log to Firebase if the actual math numbers changed
-        if (currentHash !== lastCalculatedHash) {
-            lastCalculatedHash = currentHash;
-            if (typeof window.recordCalculationStat === 'function' && completeRows > 0) {
-                window.recordCalculationStat(totalMaxPointsForStats, completeRows, parseFloat(gradeInfo.gpa));
-            }
-        }
-    }
-
-    window.updateGoalDropdown = function() {
-        const select = document.getElementById('goalCategorySelect');
-        const rows = document.querySelectorAll('#tableBody tr');
-        const currentVal = select.value;
-        select.innerHTML = '<option value="">Select a category...</option>';
-        rows.forEach((row, index) => {
-            const nameInput = row.querySelector('.category-input').value;
-            const option = document.createElement('option');
-            option.value = index; option.text = nameInput.trim() !== "" ? nameInput : `Row ${index + 1}`;
-            select.appendChild(option);
-        });
-        if (currentVal !== "" && currentVal < rows.length) select.value = currentVal;
-    }
-
-    window.calculateGoal = function() {
-        const target = parseFloat(document.getElementById('targetGrade').value);
-        const selectedIndex = document.getElementById('goalCategorySelect').value;
-        const resultDiv = document.getElementById('goalResult');
-        const goalSectionWrapper = document.getElementById('goalSectionWrapper');
-
-        if (isNaN(target)) { resultDiv.innerHTML = "Please enter a valid target grade percentage."; return; }
-        if (selectedIndex === "") { resultDiv.innerHTML = "Please select a category to calculate for."; return; }
-        saveData();
-
-        let sumOfOthers = 0, targetMax = 0, targetWeight = 0, targetName = "";
-        const rows = document.querySelectorAll('#tableBody tr');
-        
-        rows.forEach((row, index) => {
-            const earned = parseScore(row.querySelector('.earned').value); const max = parseScore(row.querySelector('.max').value); const weight = parseFloat(row.querySelector('.weight').value) || 0;
-            if (index == selectedIndex) { targetMax = max; targetWeight = weight; targetName = row.querySelector('.category-input').value || "Selected Category"; } 
-            else if (max > 0) sumOfOthers += (earned / max) * weight;
-        });
-
-        if (targetWeight === 0 || targetMax === 0) { resultDiv.innerHTML = `Category <strong>${targetName}</strong> needs valid points/weight first.`; return; }
-
-        const pointsNeeded = ((target - sumOfOthers) / targetWeight) * targetMax;
-        resultDiv.innerHTML = `To get a <strong>${target}%</strong> overall, you need:<br><span style="font-size: 1.2em; color: var(--accent-hover);">${pointsNeeded.toFixed(2)} / ${targetMax} points (${((pointsNeeded / targetMax) * 100).toFixed(2)}%)</span><br>on <em>${targetName}</em>.`;
-        goalSectionWrapper.classList.add('visible-in-export');
-
-        const targetRow = rows[selectedIndex];
-        if (targetRow) {
-            const earnedInput = targetRow.querySelector('.earned');
-            if (earnedInput && earnedInput.value === "") { 
-                earnedInput.value = pointsNeeded.toFixed(2); earnedInput.style.transition = "background-color 0.3s"; earnedInput.style.backgroundColor = "var(--mint-bg)"; setTimeout(() => { earnedInput.style.backgroundColor = ""; }, 1000); saveData();
-            } else if (earnedInput && confirm(`Update ${targetName} score to ${pointsNeeded.toFixed(2)}?`)) {
-                 earnedInput.value = pointsNeeded.toFixed(2); saveData(); 
-            }
-        }
-        calculate(true);
-    }
-
-    window.clearCourse = function() {
-        if(confirm("Are you sure you want to clear this course?")) {
-            clearTimeout(window.calcDebounceTimer);
-            coursesData[activeCourseId] = { courseName: '', targetGrade: '', rows: [] };
-            persistToStorage();
-            renderTabs();
-            renderCourseUI();
-        }
-    }
-
-    /* --- BACKUP & RESTORE LOGIC --- */
     window.downloadConfig = function() {
         if(window.trackExport) window.trackExport();
         saveCurrentCourseToState(); 
         
         const dataToExport = {
             format: 'multi',
-            activeCourseId: activeCourseId,
-            coursesData: coursesData
+            activeCourseId: window.activeCourseId,
+            coursesData: window.coursesData
         };
 
         const blob = new Blob([JSON.stringify(dataToExport, null, 2)], {type: "application/json"});
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
         a.download = getCustomFileName('json');
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        closeShareModal();
+        window.closeShareModal();
     }
 
-    window.triggerRestore = function() { document.getElementById('restoreInput').click(); closeShareModal(); }
+    window.triggerRestore = function() { document.getElementById('restoreInput').click(); window.closeShareModal(); }
 
     window.handleRestore = function(input) {
         const file = input.files[0];
@@ -1494,26 +1364,26 @@
                 if(confirm(`Restore backup data? This will merge with your current courses.`)) {
                     clearTimeout(window.calcDebounceTimer);
                     
-                    let prevCount = Object.keys(coursesData).length;
+                    let prevCount = Object.keys(window.coursesData).length;
                     
                     if (data.format === 'multi') {
-                        Object.assign(coursesData, data.coursesData);
-                        activeCourseId = data.activeCourseId;
+                        Object.assign(window.coursesData, data.coursesData);
+                        window.activeCourseId = data.activeCourseId;
                     } else {
                         const newId = generateId();
-                        coursesData[newId] = {
+                        window.coursesData[newId] = {
                             courseName: data.courseName || 'Imported Course',
                             targetGrade: data.targetGrade || '',
                             rows: data.rows || []
                         };
-                        activeCourseId = newId;
+                        window.activeCourseId = newId;
                     }
                     
-                    persistToStorage(); 
-                    renderTabs();       
-                    renderCourseUI();   
+                    window.persistToStorage(); 
+                    window.renderTabs();       
+                    window.renderCourseUI();   
                     
-                    let newCount = Object.keys(coursesData).length;
+                    let newCount = Object.keys(window.coursesData).length;
                     if (newCount > prevCount && window.trackCourseAdded) {
                         window.trackCourseAdded(newCount - prevCount); 
                     }
@@ -1529,9 +1399,57 @@
         reader.readAsText(file);
     }
 
+    /* --- THEME LOGIC --- */
+    window.toggleTheme = function() {
+        const newTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        document.getElementById('themeBtn').innerText = newTheme === 'dark' ? '🌙' : '☀️';
+        if (document.getElementById('statsModal').style.display === 'flex') window.loadDashboardStats();
+    }
+
+    /* --- DATA LOAD LOGIC (Local Fallback) --- */
+    window.loadLocalData = function() {
+        const savedMulti = localStorage.getItem('multiGradeData');
+        const savedSingle = localStorage.getItem('gradeData');
+
+        if (savedMulti) {
+            try {
+                const parsed = JSON.parse(savedMulti);
+                if (parsed.format === 'multi') {
+                    window.activeCourseId = parsed.activeCourseId || 'course-1';
+                    window.coursesData = parsed.coursesData || {};
+                    if (Object.keys(window.coursesData).length === 0) {
+                        window.coursesData['course-1'] = { courseName: '', targetGrade: '', rows: [] };
+                    }
+                }
+            } catch (e) { console.error("Error loading local multi-course data", e); }
+        } else if (savedSingle) {
+            try {
+                window.coursesData['course-1'] = JSON.parse(savedSingle);
+            } catch(e) {}
+        } else {
+            if(window.trackCourseAdded) window.trackCourseAdded(1);
+        }
+        
+        if (!window.coursesData[window.activeCourseId]) window.activeCourseId = Object.keys(window.coursesData)[0];
+
+        window.renderTabs();
+        window.renderCourseUI();
+    }
+
+    /* --- INIT --- */
     document.addEventListener('DOMContentLoaded', () => {
-        initTheme();
-        loadData();
+        const savedTheme = localStorage.getItem('theme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.getElementById('themeBtn').innerText = '🌙';
+        } else {
+            document.documentElement.setAttribute('data-theme', 'light');
+            document.getElementById('themeBtn').innerText = '☀️';
+        }
+        document.getElementById('reportDate').innerText = new Date().toLocaleDateString();
     });
 </script>
 </body>
