@@ -222,6 +222,7 @@
             display: flex;
             gap: 10px;
             align-items: center;
+            flex-wrap: wrap;
         }
 
         .theme-toggle, .stats-btn, .login-btn {
@@ -1288,12 +1289,12 @@
                     tbody.appendChild(tr);
                 });
 
-                renderChart(labels, gradeData, exportData, pointsData);
+                window.renderChart(labels, gradeData, exportData, pointsData);
             }
         } catch (error) { console.error(error); }
     }
 
-    function renderChart(labels, gradeData, exportData, pointsData) {
+    window.renderChart = function(labels, gradeData, exportData, pointsData) {
         const ctx = document.getElementById('statsChart').getContext('2d');
         if (myChart) myChart.destroy();
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -1326,14 +1327,6 @@
     }
 
     /* --- BACKUP & RESTORE LOGIC --- */
-    function getCustomFileName(extension) {
-        let name = document.getElementById('exportFileName').value.trim();
-        if (!name) name = "Grade_Report";
-        const extRegex = new RegExp(`\\.${extension}$`, 'i');
-        name = name.replace(extRegex, '');
-        return `${name}.${extension}`;
-    }
-
     window.downloadConfig = function() {
         if(window.trackExport) window.trackExport();
         saveCurrentCourseToState(); 
