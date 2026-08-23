@@ -2,14 +2,26 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grade Calculator</title>
+    <meta name="description" content="A free weighted grade calculator: track multiple courses, see your GPA and letter grade, and work out the score you need to hit your target.">
+    <meta name="color-scheme" content="light dark">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
-    
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
+
+    <!-- Apply the saved theme before first paint so there is no light/dark flash. -->
+    <script>
+        (function () {
+            var saved = null;
+            try { saved = localStorage.getItem('theme'); } catch (e) {}
+            var dark = saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        })();
+    </script>
+
     <style>
         /* --- CSS VARIABLES (THEMING) --- */
         :root {
@@ -33,6 +45,10 @@
             --result-bg: #ecf0f1;
             
             --shadow: 0 2px 10px rgba(0,0,0,0.05);
+
+            --good-color: #27ae60;
+            --warn-color: #e67e22;
+            --bad-color: #e74c3c;
 
             /* Modal Styling */
             --modal-bg: #ffffff;
@@ -63,6 +79,10 @@
             --result-bg: #2d2d2d;
             
             --shadow: 0 4px 15px rgba(0,0,0,0.5);
+
+            --good-color: #2ecc71;
+            --warn-color: #f39c12;
+            --bad-color: #ff6b6b;
 
             /* Modal Styling Dark */
             --modal-bg: #1a1b26;
@@ -294,7 +314,14 @@
             color: var(--accent-color);
             text-align: right;
             padding-right: 15px;
+            font-variant-numeric: tabular-nums;
         }
+
+        /* Colour-code each category so weak spots stand out at a glance. */
+        .row-percent.grade-good { color: var(--good-color); }
+        .row-percent.grade-ok { color: var(--warn-color); }
+        .row-percent.grade-bad { color: var(--bad-color); }
+        .row-percent.grade-empty { color: var(--text-muted); font-weight: 500; }
 
         /* --- BUTTONS --- */
         .buttons-row { 
@@ -421,7 +448,7 @@
         .export-filename-group input:focus { outline: none; border-color: var(--accent-color); }
 
         .export-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .export-option { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; color: var(--text-main); display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .export-option { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; color: var(--text-main); display: flex; flex-direction: column; align-items: center; gap: 10px; font-family: inherit; font-size: inherit; width: 100%; }
         .export-option:hover { transform: translateY(-2px); border-color: var(--accent-color); }
         .export-icon { font-size: 24px; margin-bottom: 5px; }
         .export-label { font-weight: 600; font-size: 14px; }
@@ -465,14 +492,112 @@
         
         .forgot-password {
             font-size: 12px;
+            font-family: inherit;
             color: var(--accent-color);
-            text-align: right;
+            background: none;
+            border: none;
+            padding: 0;
+            align-self: flex-end;
             cursor: pointer;
             margin-top: -10px;
             text-decoration: none;
             transition: opacity 0.2s;
         }
         .forgot-password:hover { text-decoration: underline; opacity: 0.8; }
+
+        /* --- WEIGHT WARNING --- */
+        .result-header.total-weight-warning {
+            color: var(--warn-color);
+            font-weight: 600;
+        }
+        .weight-hint {
+            display: none;
+            font-size: 11px;
+            line-height: 1.4;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        .total-weight-warning + .weight-hint { display: block; }
+
+        /* --- SYNC STATUS --- */
+        .sync-status {
+            font-size: 12px;
+            color: var(--text-secondary);
+            /* Takes no layout space until there is something to report. */
+            display: none;
+            align-items: center;
+            gap: 6px;
+        }
+        .sync-status.visible { display: flex; }
+        .sync-status::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--text-muted);
+        }
+        .sync-status.saving::before { background-color: var(--warn-color); }
+        .sync-status.saved::before { background-color: var(--good-color); }
+        .sync-status.error::before { background-color: var(--bad-color); }
+
+        /* --- TOASTS --- */
+        .toast-region {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            z-index: 2000;
+            pointer-events: none;
+            width: calc(100% - 40px);
+            max-width: 420px;
+        }
+        .toast {
+            background-color: var(--text-main);
+            color: var(--container-bg);
+            padding: 12px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            animation: toast-in 0.25s ease-out;
+        }
+        .toast.toast-error { background-color: var(--delete-btn); color: #fff; }
+        .toast.toast-success { background-color: var(--good-color); color: #fff; }
+        .toast.hiding { animation: toast-out 0.25s ease-in forwards; }
+
+        @keyframes toast-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+        @keyframes toast-out { to { opacity: 0; transform: translateY(12px); } }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* --- KEYBOARD FOCUS --- */
+        :focus-visible {
+            outline: 2px solid var(--accent-color);
+            outline-offset: 2px;
+        }
+
+        .visually-hidden {
+            position: absolute;
+            width: 1px; height: 1px;
+            padding: 0; margin: -1px;
+            overflow: hidden;
+            clip: rect(0 0 0 0);
+            white-space: nowrap;
+            border: 0;
+        }
 
         /* --- APP FOOTER (Privacy Link) --- */
         .app-footer {
@@ -516,6 +641,10 @@
             
             thead { display: none; }
             table, tbody, tr, td { display: block; width: 100%; }
+            /* Card mode doesn't need the 600px scroll floor the wide table does;
+               leaving it on pushed the weight and delete cells off-screen. */
+            #gradeTable { min-width: 0; }
+            .table-wrapper { overflow-x: visible; }
             #gradeTable tr { margin-bottom: 20px; background: var(--container-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
             .history-table tr { display: table-row; box-shadow: none; border: none; padding: 0; margin: 0; background: transparent; }
             .history-table td { display: table-cell; }
@@ -529,7 +658,8 @@
             #gradeTable td:nth-of-type(3)::before { content: "Total Points"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
             #gradeTable td:nth-of-type(5)::before { content: "Weight (%)"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
             #gradeTable td:nth-of-type(1)::before { content: "Category Name"; display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
-            .delete-btn { width: 100%; padding: 10px; }
+            /* Needs to outrank the base `button.delete-btn { width: 32px }` rule. */
+            #gradeTable button.delete-btn { width: 100%; padding: 10px; }
             
             .stats-grid { grid-template-columns: 1fr 1fr; }
         }
@@ -537,7 +667,7 @@
         /* --- PRINT / PDF EXPORT STYLES --- */
         @media print {
             @page { margin: 0.75in; size: auto; }
-            .buttons-left, .delete-btn, .header-actions, .buttons-row, .modal-overlay, .stats-btn, .tabs-wrapper, .app-footer { display: none !important; }
+            .buttons-left, .delete-btn, .header-actions, .buttons-row, .modal-overlay, .stats-btn, .tabs-wrapper, .app-footer, .toast-region, .sync-status, .weight-hint { display: none !important; }
 
             .goal-section { display: none; }
             .goal-section.goal-calculated { display: block !important; float: left !important; width: 55% !important; border: 1px solid #ddd !important; border-left: 4px solid #333 !important; background-color: #fafafa !important; color: #000 !important; padding: 15px !important; border-radius: 4px !important; box-sizing: border-box !important; margin-top: 0 !important; clear: none !important; }
@@ -579,20 +709,22 @@
 <div class="tabs-wrapper" id="tabsWrapper">
     <div id="tabsList" style="display:contents;">
     </div>
-    <button class="add-tab-btn" onclick="window.addCourse()">+ Add Course</button>
+    <button type="button" class="add-tab-btn" onclick="window.addCourse()">+ Add Course</button>
 </div>
 
 <div class="container" id="mainAppContainer">
     <div class="header-row">
         <div>
+            <label class="visually-hidden" for="courseNameInput">Course name</label>
             <input type="text" id="courseNameInput" class="course-name-input" placeholder="Enter Course Name" oninput="window.updatePageTitle(this)">
             <h2>Course Grade Report</h2>
             <div class="report-date" id="reportDate"></div>
         </div>
         <div class="header-actions">
-            <button class="login-btn" id="loginBtn" onclick="window.handleAuthClick()">Sign In</button>
-            <button class="stats-btn" id="openStatsBtn" onclick="window.openStatsModal()">📊 Community Stats</button>
-            <button class="theme-toggle" id="themeBtn" onclick="window.toggleTheme()" title="Toggle Dark/Light Mode">☀️</button>
+            <div class="sync-status" id="syncStatus" role="status" aria-live="polite"></div>
+            <button type="button" class="login-btn" id="loginBtn" onclick="window.handleAuthClick()">Sign In</button>
+            <button type="button" class="stats-btn" id="openStatsBtn" onclick="window.openStatsModal()">📊 Community Stats</button>
+            <button type="button" class="theme-toggle" id="themeBtn" onclick="window.toggleTheme()" title="Toggle Dark/Light Mode" aria-label="Toggle dark or light mode">☀️</button>
         </div>
     </div>
     
@@ -614,10 +746,10 @@
     </div>
 
     <div class="buttons-row">
-        <button class="btn-std add-btn" onclick="window.addRow()">+ Add Category</button>
-        <button class="btn-std clear-btn" onclick="window.clearCourse()">Clear Course</button>
-        <button class="btn-std import-btn" onclick="window.triggerRestore()">📥 Import JSON</button>
-        <button class="btn-std share-btn" onclick="window.openShareModal()">📤 Share / Export</button>
+        <button type="button" class="btn-std add-btn" onclick="window.addRow()">+ Add Category</button>
+        <button type="button" class="btn-std clear-btn" onclick="window.clearCourse()">Clear Course</button>
+        <button type="button" class="btn-std import-btn" onclick="window.triggerRestore()">📥 Import JSON</button>
+        <button type="button" class="btn-std share-btn" onclick="window.openShareModal()">📤 Share / Export</button>
     </div>
     
     <input type="file" id="restoreInput" accept=".json" style="display: none;" onchange="window.handleRestore(this)">
@@ -630,24 +762,25 @@
                 </div>
                 <div class="goal-controls">
                     <div class="goal-input-group">
-                        <label>Target Grade (%)</label>
-                        <input type="number" id="targetGrade" placeholder="90" oninput="window.saveData()">
+                        <label for="targetGrade">Target Grade (%)</label>
+                        <input type="number" id="targetGrade" min="0" max="100" step="0.01" placeholder="90" oninput="window.saveData()">
                     </div>
                     <div class="goal-input-group">
-                        <label>Calculate For Category</label>
-                        <select id="goalCategorySelect" onmousedown="window.updateGoalDropdown()">
+                        <label for="goalCategorySelect">Calculate For Category</label>
+                        <select id="goalCategorySelect" onfocus="window.updateGoalDropdown()" onmousedown="window.updateGoalDropdown()">
                             <option value="">Select a category...</option>
                         </select>
                     </div>
-                    <button class="calc-goal-btn" onclick="window.calculateGoal()">Calculate Needed Score</button>
+                    <button type="button" class="calc-goal-btn" onclick="window.calculateGoal()">Calculate Needed Score</button>
                 </div>
-                <div class="goal-result" id="goalResult"></div>
+                <div class="goal-result" id="goalResult" aria-live="polite"></div>
             </div>
         </div>
 
         <div class="result-box-wrapper">
-            <div class="result-box">
+            <div class="result-box" aria-live="polite">
                 <div id="weightDisplay" class="result-header">Total Weight: 0%</div>
+                <div class="weight-hint" id="weightHint">Weights don't add up to 100% &mdash; your grade is scaled to the weight entered so far.</div>
                 <div class="result-header">Final Grade:</div>
                 <div class="final-grade" id="finalGrade">0.00%</div>
                 
@@ -670,11 +803,11 @@
     <a href="privacy.html">Privacy Policy</a>
 </div>
 
-<div class="modal-overlay" id="shareModal">
+<div class="modal-overlay" id="shareModal" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle">
     <div class="modal-content small-modal">
         <div class="modal-header">
-            <h2>Share / Export</h2>
-            <button class="close-modal" onclick="window.closeShareModal()">×</button>
+            <h2 id="shareModalTitle">Share / Export</h2>
+            <button type="button" class="close-modal" onclick="window.closeShareModal()" aria-label="Close">×</button>
         </div>
 
         <div class="export-filename-group">
@@ -683,47 +816,47 @@
         </div>
         
         <div class="export-grid">
-            <div class="export-option" onclick="window.downloadConfig()">
-                <div class="export-icon" style="color: #3498db;">💾</div>
-                <div class="export-label">Save Backup</div>
-            </div>
-            <div class="export-option" onclick="window.triggerRestore()">
-                <div class="export-icon" style="color: #e67e22;">📂</div>
-                <div class="export-label">Load Backup</div>
-            </div>
-            <div class="export-option" onclick="window.recordExportStat()">
-                <div class="export-icon">📄</div>
-                <div class="export-label">Save as PDF</div>
-            </div>
-            <div class="export-option" onclick="window.emailReport()">
-                <div class="export-icon">📧</div>
-                <div class="export-label">Email Report</div>
-            </div>
-            <div class="export-option" onclick="window.copyToClipboard()">
-                <div class="export-icon">📋</div>
-                <div class="export-label">Copy Text</div>
-            </div>
-            <div class="export-option" onclick="window.downloadImage()">
-                <div class="export-icon">🖼️</div>
-                <div class="export-label">Save Image</div>
-            </div>
-            <div class="export-option" onclick="window.downloadCSV()">
-                <div class="export-icon">📊</div>
-                <div class="export-label">Download CSV</div>
-            </div>
+            <button type="button" class="export-option" onclick="window.downloadConfig()">
+                <span class="export-icon" style="color: #3498db;" aria-hidden="true">💾</span>
+                <span class="export-label">Save Backup</span>
+            </button>
+            <button type="button" class="export-option" onclick="window.triggerRestore()">
+                <span class="export-icon" style="color: #e67e22;" aria-hidden="true">📂</span>
+                <span class="export-label">Load Backup</span>
+            </button>
+            <button type="button" class="export-option" onclick="window.recordExportStat()">
+                <span class="export-icon" aria-hidden="true">📄</span>
+                <span class="export-label">Save as PDF</span>
+            </button>
+            <button type="button" class="export-option" onclick="window.emailReport()">
+                <span class="export-icon" aria-hidden="true">📧</span>
+                <span class="export-label">Email Report</span>
+            </button>
+            <button type="button" class="export-option" onclick="window.copyToClipboard()">
+                <span class="export-icon" aria-hidden="true">📋</span>
+                <span class="export-label">Copy Text</span>
+            </button>
+            <button type="button" class="export-option" onclick="window.downloadImage()">
+                <span class="export-icon" aria-hidden="true">🖼️</span>
+                <span class="export-label">Save Image</span>
+            </button>
+            <button type="button" class="export-option" onclick="window.downloadCSV()">
+                <span class="export-icon" aria-hidden="true">📊</span>
+                <span class="export-label">Download CSV</span>
+            </button>
         </div>
 
         <div class="modal-footer">
-            <button class="modal-close-btn" onclick="window.closeShareModal()">Cancel</button>
+            <button type="button" class="modal-close-btn" onclick="window.closeShareModal()">Cancel</button>
         </div>
     </div>
 </div>
 
-<div class="modal-overlay" id="statsModal">
+<div class="modal-overlay" id="statsModal" role="dialog" aria-modal="true" aria-labelledby="statsModalTitle">
     <div class="modal-content">
         <div class="modal-header">
-            <h2>Community Statistics</h2>
-            <button class="close-modal" onclick="window.closeStatsModal()">×</button>
+            <h2 id="statsModalTitle">Community Statistics</h2>
+            <button type="button" class="close-modal" onclick="window.closeStatsModal()" aria-label="Close">×</button>
         </div>
 
         <div class="stats-grid">
@@ -770,43 +903,45 @@
         </div>
 
         <div class="modal-footer">
-            <button class="modal-close-btn" onclick="window.closeStatsModal()">Close</button>
+            <button type="button" class="modal-close-btn" onclick="window.closeStatsModal()">Close</button>
         </div>
     </div>
 </div>
 
-<div class="modal-overlay" id="authModal">
+<div class="modal-overlay" id="authModal" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
     <div class="modal-content small-modal">
         <div class="modal-header">
-            <h2>Account / Sign In</h2>
-            <button class="close-modal" onclick="window.closeAuthModal()">×</button>
+            <h2 id="authModalTitle">Account / Sign In</h2>
+            <button type="button" class="close-modal" onclick="window.closeAuthModal()" aria-label="Close">×</button>
         </div>
-        
-        <div class="auth-form">
+
+        <form class="auth-form" id="authForm" onsubmit="event.preventDefault(); window.emailSignIn();">
             <div class="goal-input-group">
-                <label>Email</label>
-                <input type="email" id="authEmail" placeholder="you@example.com">
+                <label for="authEmail">Email</label>
+                <input type="email" id="authEmail" autocomplete="email" placeholder="you@example.com">
             </div>
             <div class="goal-input-group">
-                <label>Password</label>
-                <input type="password" id="authPassword" placeholder="••••••••">
+                <label for="authPassword">Password</label>
+                <input type="password" id="authPassword" autocomplete="current-password" placeholder="••••••••">
             </div>
-            <a class="forgot-password" onclick="window.forgotPassword()">Forgot Password?</a>
-            
+            <button type="button" class="forgot-password" onclick="window.forgotPassword()">Forgot Password?</button>
+
             <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <button class="calc-goal-btn" style="flex: 1;" onclick="window.emailSignIn()">Sign In</button>
-                <button class="calc-goal-btn" style="flex: 1; background-color: var(--text-secondary);" onclick="window.emailSignUp()">Create Account</button>
+                <button type="submit" class="calc-goal-btn" style="flex: 1;">Sign In</button>
+                <button type="button" class="calc-goal-btn" style="flex: 1; background-color: var(--text-secondary);" onclick="window.emailSignUp()">Create Account</button>
             </div>
-            
+
             <div class="auth-separator">OR</div>
-            
-            <button class="btn-google" onclick="window.googleSignIn()">
+
+            <button type="button" class="btn-google" onclick="window.googleSignIn()">
                 <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg"><g transform="matrix(1, 0, 0, 1, 0, 0)"><path d="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C8.36,19.27 5,16.25 5,12C5,7.9 8.2,4.73 12.2,4.73C15.29,4.73 17.1,6.7 17.1,6.7L19,4.72C19,4.72 16.56,2 12.1,2C6.42,2 2.03,6.8 2.03,12C2.03,17.05 6.16,22 12.25,22C17.6,22 21.5,18.33 21.5,12.91C21.5,11.76 21.35,11.1 21.35,11.1Z" fill="#4285F4"/></g></svg>
                 Continue with Google
             </button>
-        </div>
+        </form>
     </div>
 </div>
+
+<div class="toast-region" id="toastRegion" role="status" aria-live="polite"></div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -836,71 +971,143 @@
     window.sessionMaxCategories = {}; 
     window.sessionMaxPoints = {};
     
-    let lastCalculatedHash = ""; 
+    let lastCalculatedHash = "";
     let hasLoadedInitialCloudData = false;
     let myChart = null;
+    let cloudSyncTimer = null;
+    let syncStatusTimer = null;
+
+    // --- TOASTS (non-blocking replacement for alert() on success paths) ---
+    window.toast = function(message, type) {
+        const region = document.getElementById('toastRegion');
+        if (!region) return;
+        const el = document.createElement('div');
+        el.className = 'toast' + (type ? ' toast-' + type : '');
+        el.textContent = message;
+        region.appendChild(el);
+        setTimeout(() => {
+            el.classList.add('hiding');
+            el.addEventListener('animationend', () => el.remove());
+            setTimeout(() => el.remove(), 500);
+        }, type === 'error' ? 5000 : 3000);
+    };
+
+    // --- LAZY SCRIPT LOADING (keeps first paint light) ---
+    const scriptPromises = {};
+    function loadScript(src) {
+        if (scriptPromises[src]) return scriptPromises[src];
+        scriptPromises[src] = new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = src;
+            s.async = true;
+            s.onload = resolve;
+            s.onerror = () => {
+                delete scriptPromises[src];
+                reject(new Error('Failed to load ' + src));
+            };
+            document.head.appendChild(s);
+        });
+        return scriptPromises[src];
+    }
+
+    // --- SYNC STATUS INDICATOR ---
+    function setSyncStatus(state, text) {
+        const el = document.getElementById('syncStatus');
+        if (!el) return;
+        clearTimeout(syncStatusTimer);
+        el.className = 'sync-status visible ' + state;
+        el.textContent = text;
+        if (state === 'saved') {
+            syncStatusTimer = setTimeout(() => el.classList.remove('visible'), 2000);
+        }
+    }
 
     // --- AUTHENTICATION MODAL FUNCTIONS ---
     window.openAuthModal = function() {
         document.getElementById('authEmail').value = '';
         document.getElementById('authPassword').value = '';
         document.getElementById('authModal').style.display = 'flex';
+        onModalOpened('authModal');
     };
-    
+
     window.closeAuthModal = function() {
         document.getElementById('authModal').style.display = 'none';
+        onModalClosed();
     };
 
     window.handleAuthClick = function() {
         if (window.currentUser) {
+            // Make sure anything typed in the last second reaches the account
+            // before the session ends.
+            flushPendingSync();
             signOut(auth).then(() => {
-                alert("Logged out successfully. Falling back to local device storage.");
+                window.toast('Signed out. Your courses stay saved on this device.');
                 window.loadLocalData();
-            });
+            }).catch(authError);
         } else {
             window.openAuthModal();
         }
     };
 
+    // Firebase's raw messages ("Firebase: Error (auth/invalid-credential).")
+    // mean nothing to a student, so translate the ones they'll actually hit.
+    const AUTH_MESSAGES = {
+        'auth/invalid-email': 'That email address doesn\'t look right.',
+        'auth/user-not-found': 'No account found with that email address.',
+        'auth/wrong-password': 'Incorrect password. Try again or reset it.',
+        'auth/invalid-credential': 'Email or password is incorrect.',
+        'auth/email-already-in-use': 'An account already exists for that email — try signing in.',
+        'auth/weak-password': 'Please choose a password of at least 6 characters.',
+        'auth/too-many-requests': 'Too many attempts. Please wait a moment and try again.',
+        'auth/network-request-failed': 'Network problem — check your connection and try again.',
+        'auth/popup-closed-by-user': 'Sign-in window was closed before finishing.',
+        'auth/popup-blocked': 'Your browser blocked the sign-in popup. Allow popups and try again.'
+    };
+
+    function authError(err) {
+        console.error(err);
+        if (err && err.code === 'auth/popup-closed-by-user') return; // user chose to cancel
+        window.toast(AUTH_MESSAGES[err && err.code] || 'Something went wrong. Please try again.', 'error');
+    }
+
     window.googleSignIn = function() {
         const provider = new GoogleAuthProvider();
         signInWithPopup(auth, provider).then(() => {
             window.closeAuthModal();
-        }).catch(err => alert("Sign In Error: " + err.message));
+            window.toast('Signed in. Your courses now sync to this account.', 'success');
+        }).catch(authError);
     };
 
     window.emailSignIn = function() {
-        const email = document.getElementById('authEmail').value;
+        const email = document.getElementById('authEmail').value.trim();
         const pass = document.getElementById('authPassword').value;
-        if(!email || !pass) return alert("Please enter both email and password.");
-        
+        if (!email || !pass) return window.toast('Please enter both email and password.', 'error');
+
         signInWithEmailAndPassword(auth, email, pass).then(() => {
             window.closeAuthModal();
-        }).catch(err => alert("Login Error: " + err.message));
+            window.toast('Signed in. Your courses now sync to this account.', 'success');
+        }).catch(authError);
     };
 
     window.emailSignUp = function() {
-        const email = document.getElementById('authEmail').value;
+        const email = document.getElementById('authEmail').value.trim();
         const pass = document.getElementById('authPassword').value;
-        if(!email || !pass) return alert("Please enter both email and password.");
-        if(pass.length < 6) return alert("Password must be at least 6 characters.");
-        
+        if (!email || !pass) return window.toast('Please enter both email and password.', 'error');
+        if (pass.length < 6) return window.toast('Password must be at least 6 characters.', 'error');
+
         createUserWithEmailAndPassword(auth, email, pass).then(() => {
             window.closeAuthModal();
-            alert("Account created successfully!");
-        }).catch(err => alert("Sign Up Error: " + err.message));
+            window.toast('Account created — your courses will sync from now on.', 'success');
+        }).catch(authError);
     };
 
     window.forgotPassword = function() {
-        const email = document.getElementById('authEmail').value;
-        if(!email) return alert("Please enter your email address in the box first, then click 'Forgot Password?'.");
+        const email = document.getElementById('authEmail').value.trim();
+        if (!email) return window.toast('Enter your email address above first, then click "Forgot Password?".', 'error');
 
         sendPasswordResetEmail(auth, email).then(() => {
-            alert("Password reset email sent! Check your inbox.");
-        }).catch(err => {
-            if(err.code === 'auth/user-not-found') alert("No account found with that email address.");
-            else alert("Error: " + err.message);
-        });
+            window.toast('Password reset email sent — check your inbox.', 'success');
+        }).catch(authError);
     };
 
     // --- AUTHENTICATION STATE ---
@@ -934,25 +1141,61 @@
     });
 
     // --- CLOUD SYNC FUNCTIONS ---
+    function courseHasContent(course) {
+        if (!course) return false;
+        if ((course.courseName || '').trim()) return true;
+        return (course.rows || []).some(r =>
+            (r.name || '').trim() || (r.earned || '').toString().trim() ||
+            (r.max || '').toString().trim() || (r.weight || '').toString().trim()
+        );
+    }
+
     async function fetchCloudData(uid) {
+        setSyncStatus('saving', 'Loading your courses…');
         try {
             const snapshot = await get(ref(db, `users/${uid}/gradeData`));
-            if (snapshot.exists()) {
-                const parsed = snapshot.val();
-                if (parsed.format === 'multi') {
-                    window.activeCourseId = parsed.activeCourseId || 'course-1';
-                    window.coursesData = parsed.coursesData || {};
-                    if (Object.keys(window.coursesData).length === 0) {
-                        window.coursesData['course-1'] = { courseName: '', targetGrade: '', rows: [] };
-                    }
+
+            if (!snapshot.exists()) {
+                // First sign-in on this account: keep whatever is on the device.
+                window.persistToStorage(true);
+                return;
+            }
+
+            const parsed = snapshot.val();
+            if (parsed.format !== 'multi') return;
+
+            // Anything the user typed before signing in is kept rather than
+            // being silently replaced by the account's copy.
+            const localOnly = {};
+            Object.entries(window.coursesData).forEach(([id, course]) => {
+                if (!parsed.coursesData || !parsed.coursesData[id]) {
+                    if (courseHasContent(course)) localOnly[id] = course;
                 }
-                window.renderTabs();
-                window.renderCourseUI();
+            });
+
+            window.coursesData = Object.assign({}, parsed.coursesData || {}, localOnly);
+            if (Object.keys(window.coursesData).length === 0) {
+                window.coursesData['course-1'] = { courseName: '', targetGrade: '', rows: [] };
+            }
+
+            window.activeCourseId = parsed.activeCourseId && window.coursesData[parsed.activeCourseId]
+                ? parsed.activeCourseId
+                : Object.keys(window.coursesData)[0];
+
+            window.renderTabs();
+            window.renderCourseUI();
+
+            const mergedCount = Object.keys(localOnly).length;
+            if (mergedCount > 0) {
+                window.persistToStorage(true);
+                window.toast(`Kept ${mergedCount} unsaved course${mergedCount > 1 ? 's' : ''} from this device.`);
             } else {
-                window.persistToStorage();
+                setSyncStatus('saved', 'Courses loaded');
             }
         } catch (e) {
             console.error("Cloud fetch failed:", e);
+            setSyncStatus('error', 'Could not load your courses');
+            window.toast('Could not load your saved courses. Showing this device\'s copy.', 'error');
         }
     }
 
@@ -981,19 +1224,59 @@
         });
     }
 
-    window.persistToStorage = function() {
-        const payload = {
+    function buildPayload() {
+        return {
             format: 'multi',
             activeCourseId: window.activeCourseId,
             coursesData: window.coursesData
         };
-        
-        localStorage.setItem('multiGradeData', JSON.stringify(payload));
-        
-        if (window.currentUser) {
-            set(ref(db, `users/${window.currentUser.uid}/gradeData`), payload);
+    }
+
+    /*
+     * Local storage is written straight away; the cloud write is debounced so a
+     * burst of typing costs one Firebase write instead of one per keystroke.
+     */
+    window.persistToStorage = function(immediate) {
+        const payload = buildPayload();
+
+        try {
+            localStorage.setItem('multiGradeData', JSON.stringify(payload));
+        } catch (e) {
+            console.error('Local save failed:', e);
+            setSyncStatus('error', 'Could not save locally');
+        }
+
+        if (!window.currentUser) return;
+
+        clearTimeout(cloudSyncTimer);
+        setSyncStatus('saving', 'Saving…');
+
+        const write = () => {
+            cloudSyncTimer = null;
+            set(ref(db, `users/${window.currentUser.uid}/gradeData`), buildPayload())
+                .then(() => setSyncStatus('saved', 'Saved to your account'))
+                .catch(err => {
+                    console.error('Cloud save failed:', err);
+                    setSyncStatus('error', 'Offline — saved on this device');
+                });
+        };
+
+        if (immediate) write();
+        else cloudSyncTimer = setTimeout(write, 1200);
+    }
+
+    // Don't let a pending debounced write get lost when the tab goes away.
+    function flushPendingSync() {
+        if (cloudSyncTimer && window.currentUser) {
+            clearTimeout(cloudSyncTimer);
+            cloudSyncTimer = null;
+            set(ref(db, `users/${window.currentUser.uid}/gradeData`), buildPayload()).catch(() => {});
         }
     }
+    window.addEventListener('pagehide', flushPendingSync);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') flushPendingSync();
+    });
 
     window.saveData = function() {
         saveCurrentCourseToState();
@@ -1079,18 +1362,7 @@
         tableBody.innerHTML = ''; 
         
         if (data.rows && data.rows.length > 0) {
-            data.rows.forEach(rowData => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td><input type="text" class="category-input" placeholder="Category Name" onchange="window.updateGoalDropdown()" oninput="window.saveData()" value="${rowData.name || ''}"></td>
-                    <td><input type="text" class="num-input earned" placeholder="0" oninput="window.calculate(event); window.saveData()" onfocus="window.handleFocus(this)" onblur="window.handleBlur(this)" value="${rowData.earned || ''}"></td>
-                    <td><input type="text" class="num-input max" placeholder="0" oninput="window.calculate(event); window.saveData()" onfocus="window.handleFocus(this)" onblur="window.handleBlur(this)" value="${rowData.max || ''}"></td>
-                    <td class="row-percent">0.00%</td>
-                    <td><input type="number" class="num-input weight" placeholder="0" oninput="window.calculate(event); window.saveData()" value="${rowData.weight || ''}"></td>
-                    <td><button class="delete-btn" onclick="window.removeRow(this)">×</button></td>
-                `;
-                tableBody.appendChild(row);
-            });
+            data.rows.forEach(rowData => tableBody.appendChild(buildRow(rowData)));
         } else {
              window.addRow(); window.addRow(); window.addRow();
         }
@@ -1119,11 +1391,78 @@
         return { gpa: '0.0', letter: 'F' };
     }
 
+    /*
+     * Evaluates the little arithmetic expressions students type into the score
+     * boxes ("18+4", "45/50*10"). Hand-rolled recursive descent rather than
+     * new Function/eval so nothing from storage or an imported file can ever
+     * be executed as code.
+     */
+    function evaluateExpression(text) {
+        const src = text.replace(/\s+/g, '');
+        let pos = 0;
+
+        function peek() { return src[pos]; }
+
+        function parseNumber() {
+            const start = pos;
+            while (pos < src.length && (src[pos] >= '0' && src[pos] <= '9')) pos++;
+            if (src[pos] === '.') {
+                pos++;
+                while (pos < src.length && (src[pos] >= '0' && src[pos] <= '9')) pos++;
+            }
+            if (pos === start) throw new Error('expected a number');
+            return parseFloat(src.slice(start, pos));
+        }
+
+        function parseFactor() {
+            const c = peek();
+            if (c === '+') { pos++; return parseFactor(); }
+            if (c === '-') { pos++; return -parseFactor(); }
+            if (c === '(') {
+                pos++;
+                const value = parseExpr();
+                if (peek() !== ')') throw new Error('unbalanced parenthesis');
+                pos++;
+                return value;
+            }
+            return parseNumber();
+        }
+
+        function parseTerm() {
+            let value = parseFactor();
+            while (peek() === '*' || peek() === '/') {
+                const op = src[pos++];
+                const rhs = parseFactor();
+                value = op === '*' ? value * rhs : value / rhs;
+            }
+            return value;
+        }
+
+        function parseExpr() {
+            let value = parseTerm();
+            while (peek() === '+' || peek() === '-') {
+                const op = src[pos++];
+                const rhs = parseTerm();
+                value = op === '+' ? value + rhs : value - rhs;
+            }
+            return value;
+        }
+
+        const result = parseExpr();
+        if (pos !== src.length) throw new Error('unexpected trailing input');
+        return result;
+    }
+
     function parseScore(input) {
         if (!input) return 0;
-        const clean = input.toString().replace(/[^0-9\.\+\-\*\/\(\)]/g, '');
+        const clean = input.toString().replace(/[^0-9.+\-*/()]/g, '');
         if (!clean) return 0;
-        try { const result = new Function('return ' + clean)(); return isFinite(result) ? result : 0; } catch (e) { return 0; }
+        try {
+            const result = evaluateExpression(clean);
+            return isFinite(result) ? result : 0;
+        } catch (e) {
+            return 0;
+        }
     }
 
     window.handleFocus = function(input) { if (input.dataset.raw) input.value = input.dataset.raw; }
@@ -1143,15 +1482,83 @@
         window.saveData();
     }
 
-    window.addRow = function() {
-        const tbody = document.getElementById('tableBody');
+    /*
+     * Builds a table row with real DOM nodes. Values are assigned via .value
+     * rather than interpolated into an HTML string, so a category name from
+     * cloud storage or an imported backup can never inject markup.
+     */
+    function buildRow(rowData) {
+        const data = rowData || {};
         const row = document.createElement('tr');
-        row.innerHTML = `<td><input type="text" class="category-input" placeholder="Category Name" onchange="window.updateGoalDropdown()" oninput="window.saveData()"></td><td><input type="text" class="num-input earned" placeholder="0" oninput="window.calculate(event); window.saveData()" onfocus="window.handleFocus(this)" onblur="window.handleBlur(this)"></td><td><input type="text" class="num-input max" placeholder="0" oninput="window.calculate(event); window.saveData()" onfocus="window.handleFocus(this)" onblur="window.handleBlur(this)"></td><td class="row-percent">0.00%</td><td><input type="number" class="num-input weight" placeholder="0" oninput="window.calculate(event); window.saveData()"></td><td><button class="delete-btn" onclick="window.removeRow(this)">×</button></td>`;
-        tbody.appendChild(row);
+
+        function cell(child, className) {
+            const td = document.createElement('td');
+            if (className) td.className = className;
+            if (child) td.appendChild(child);
+            return td;
+        }
+
+        function input(type, className, value, label) {
+            const el = document.createElement('input');
+            el.type = type;
+            el.className = className;
+            el.placeholder = type === 'text' && className === 'category-input' ? 'Category Name' : '0';
+            el.setAttribute('aria-label', label);
+            el.value = value != null ? value : '';
+            return el;
+        }
+
+        const name = input('text', 'category-input', data.name, 'Category name');
+        name.addEventListener('input', () => window.saveData());
+        name.addEventListener('change', () => window.updateGoalDropdown());
+
+        const earned = input('text', 'num-input earned', data.earned, 'Points earned');
+        const max = input('text', 'num-input max', data.max, 'Total points');
+        [earned, max].forEach(el => {
+            el.setAttribute('inputmode', 'decimal');
+            el.addEventListener('input', e => { window.calculate(e); window.saveData(); });
+            el.addEventListener('focus', () => window.handleFocus(el));
+            el.addEventListener('blur', () => window.handleBlur(el));
+        });
+
+        const weight = input('number', 'num-input weight', data.weight, 'Weight percent');
+        weight.min = '0';
+        weight.addEventListener('input', e => { window.calculate(e); window.saveData(); });
+
+        const percent = document.createElement('td');
+        percent.className = 'row-percent grade-empty';
+        percent.textContent = '0.00%';
+
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'delete-btn';
+        del.textContent = '×';
+        del.setAttribute('aria-label', 'Remove this category');
+        del.addEventListener('click', () => window.removeRow(del));
+
+        row.appendChild(cell(name));
+        row.appendChild(cell(earned));
+        row.appendChild(cell(max));
+        row.appendChild(percent);
+        row.appendChild(cell(weight));
+        row.appendChild(cell(del));
+        return row;
+    }
+
+    window.addRow = function() {
+        const row = buildRow();
+        document.getElementById('tableBody').appendChild(row);
         window.saveData();
+        return row;
     }
 
     window.removeRow = function(btn) { btn.closest('tr').remove(); window.calculate(true); window.updateGoalDropdown(); window.saveData(); }
+
+    function gradeClass(percent) {
+        if (percent >= 90) return 'grade-good';
+        if (percent >= 70) return 'grade-ok';
+        return 'grade-bad';
+    }
 
     window.calculate = function(e) {
         let isUserInput = false;
@@ -1176,18 +1583,23 @@
             }
             
             if (max > 0) {
-                percentDisplay.innerText = ((earned / max) * 100).toFixed(2) + '%';
+                const rowPercent = (earned / max) * 100;
+                percentDisplay.innerText = rowPercent.toFixed(2) + '%';
+                percentDisplay.className = 'row-percent ' + gradeClass(rowPercent);
                 totalWeightedScore += (earned / max) * weight;
                 totalWeightUsed += weight;
-            } else { 
-                percentDisplay.innerText = '0.00%'; 
+            } else {
+                percentDisplay.innerText = '0.00%';
+                percentDisplay.className = 'row-percent grade-empty';
             }
         });
 
         const weightDisplay = document.getElementById('weightDisplay');
         if (weightDisplay) {
-            weightDisplay.innerText = `Total Weight: ${totalWeightUsed}%`;
-            weightDisplay.classList.toggle('total-weight-warning', totalWeightUsed !== 100 && totalWeightUsed !== 0);
+            // Round for display: 33.3 * 3 lands on 99.99999999999999 otherwise.
+            const roundedWeight = Math.round(totalWeightUsed * 100) / 100;
+            weightDisplay.innerText = `Total Weight: ${roundedWeight}%`;
+            weightDisplay.classList.toggle('total-weight-warning', roundedWeight !== 100 && roundedWeight !== 0);
         }
 
         const finalGradeDisplay = document.getElementById('finalGrade');
@@ -1246,28 +1658,87 @@
         if (selectedIndex === "") { resultDiv.innerHTML = "Please select a category to calculate for."; return; }
         window.saveData();
 
-        let sumOfOthers = 0, targetMax = 0, targetWeight = 0, targetName = "";
+        let sumOfOthers = 0, otherWeight = 0, targetMax = 0, targetWeight = 0, targetName = "";
         const rows = document.querySelectorAll('#tableBody tr');
-        
+
         rows.forEach((row, index) => {
-            const earned = parseScore(row.querySelector('.earned').value); const max = parseScore(row.querySelector('.max').value); const weight = parseFloat(row.querySelector('.weight').value) || 0;
-            if (index == selectedIndex) { targetMax = max; targetWeight = weight; targetName = row.querySelector('.category-input').value || "Selected Category"; } 
-            else if (max > 0) sumOfOthers += (earned / max) * weight;
+            const earned = parseScore(row.querySelector('.earned').value);
+            const max = parseScore(row.querySelector('.max').value);
+            const weight = parseFloat(row.querySelector('.weight').value) || 0;
+            if (index == selectedIndex) {
+                targetMax = max;
+                targetWeight = weight;
+                targetName = row.querySelector('.category-input').value || "Selected Category";
+            } else if (max > 0) {
+                sumOfOthers += (earned / max) * weight;
+                otherWeight += weight;
+            }
         });
 
-        if (targetWeight === 0 || targetMax === 0) { resultDiv.innerHTML = `Category <strong>${targetName}</strong> needs valid points/weight first.`; return; }
+        if (targetWeight === 0 || targetMax === 0) {
+            resultDiv.textContent = '';
+            resultDiv.append(
+                'Category ', Object.assign(document.createElement('strong'), { textContent: targetName }),
+                ' needs valid points/weight first.'
+            );
+            return;
+        }
 
-        const pointsNeeded = ((target - sumOfOthers) / targetWeight) * targetMax;
-        resultDiv.innerHTML = `To get a <strong>${target}%</strong> overall, you need:<br><span style="font-size: 1.2em; color: var(--accent-hover);">${pointsNeeded.toFixed(2)} / ${targetMax} points (${((pointsNeeded / targetMax) * 100).toFixed(2)}%)</span><br>on <em>${targetName}</em>.`;
+        /*
+         * The final grade is the weighted score scaled by the weight actually
+         * entered, so the target has to be scaled the same way. When the
+         * weights add up to 100 this is identical to a plain subtraction; when
+         * they don't, this is the difference between a right and a wrong answer.
+         */
+        const totalWeight = otherWeight + targetWeight;
+        const fractionNeeded = ((target * totalWeight / 100) - sumOfOthers) / targetWeight;
+        const pointsNeeded = fractionNeeded * targetMax;
+        const percentNeeded = fractionNeeded * 100;
+
+        const needed = document.createElement('span');
+        needed.style.fontSize = '1.2em';
+        needed.style.color = 'var(--accent-hover)';
+        needed.textContent = `${pointsNeeded.toFixed(2)} / ${targetMax} points (${percentNeeded.toFixed(2)}%)`;
+
+        resultDiv.textContent = '';
+        resultDiv.append(
+            'To get a ', Object.assign(document.createElement('strong'), { textContent: `${target}%` }),
+            ' overall, you need:',
+            document.createElement('br'), needed, document.createElement('br'),
+            'on ', Object.assign(document.createElement('em'), { textContent: targetName }), '.'
+        );
+
+        // Tell the student what the number actually means for them.
+        const verdict = document.createElement('div');
+        verdict.style.marginTop = '10px';
+        verdict.style.fontSize = '14px';
+        if (pointsNeeded <= 0) {
+            verdict.style.color = 'var(--good-color)';
+            verdict.textContent = `You've already secured ${target}% even with a zero here.`;
+        } else if (pointsNeeded > targetMax) {
+            verdict.style.color = 'var(--bad-color)';
+            verdict.textContent = `That's above the ${targetMax} points available — ${target}% isn't reachable from this category alone.`;
+        } else {
+            verdict.style.color = 'var(--text-secondary)';
+            verdict.textContent = 'Within reach — this is the minimum score you need.';
+        }
+        resultDiv.appendChild(verdict);
+
         goalSectionWrapper.classList.add('visible-in-export');
 
+        // Only pre-fill a score the student could actually earn.
         const targetRow = rows[selectedIndex];
-        if (targetRow) {
+        const achievable = pointsNeeded >= 0 && pointsNeeded <= targetMax;
+        if (targetRow && achievable) {
             const earnedInput = targetRow.querySelector('.earned');
-            if (earnedInput && earnedInput.value === "") { 
-                earnedInput.value = pointsNeeded.toFixed(2); earnedInput.style.transition = "background-color 0.3s"; earnedInput.style.backgroundColor = "var(--mint-bg)"; setTimeout(() => { earnedInput.style.backgroundColor = ""; }, 1000); window.saveData();
+            if (earnedInput && earnedInput.value === "") {
+                earnedInput.value = pointsNeeded.toFixed(2);
+                earnedInput.style.transition = "background-color 0.3s";
+                earnedInput.style.backgroundColor = "var(--mint-bg)";
+                setTimeout(() => { earnedInput.style.backgroundColor = ""; }, 1000);
+                window.saveData();
             } else if (earnedInput && confirm(`Update ${targetName} score to ${pointsNeeded.toFixed(2)}?`)) {
-                 earnedInput.value = pointsNeeded.toFixed(2); window.saveData(); 
+                 earnedInput.value = pointsNeeded.toFixed(2); window.saveData();
             }
         }
         window.calculate(true);
@@ -1286,11 +1757,13 @@
     /* --- MODAL FUNCTIONS (Explicit definitions for HTML mapping) --- */
     window.openStatsModal = function() {
         document.getElementById('statsModal').style.display = 'flex';
+        onModalOpened('statsModal');
         if(typeof window.loadDashboardStats === 'function') window.loadDashboardStats();
     };
-    
+
     window.closeStatsModal = function() {
         document.getElementById('statsModal').style.display = 'none';
+        onModalClosed();
     };
 
     window.openShareModal = function() {
@@ -1301,21 +1774,79 @@
             const safeName = currentCourse.replace(/[^a-z0-9_\-]/gi, '_');
             nameInput.value = safeName;
         }
-        document.getElementById('shareModal').style.display = 'flex'; 
-    };
-    
-    window.closeShareModal = function() {
-        document.getElementById('shareModal').style.display = 'none';
+        document.getElementById('shareModal').style.display = 'flex';
+        onModalOpened('shareModal');
     };
 
-    window.onclick = function(event) {
-        const statsModal = document.getElementById('statsModal');
-        const shareModal = document.getElementById('shareModal');
-        const authModal = document.getElementById('authModal');
-        if (event.target == statsModal) window.closeStatsModal();
-        if (event.target == shareModal) window.closeShareModal();
-        if (event.target == authModal) window.closeAuthModal();
+    window.closeShareModal = function() {
+        document.getElementById('shareModal').style.display = 'none';
+        onModalClosed();
     };
+
+    /* --- MODAL KEYBOARD / FOCUS BEHAVIOUR --- */
+    const MODAL_CLOSERS = {
+        statsModal: () => window.closeStatsModal(),
+        shareModal: () => window.closeShareModal(),
+        authModal: () => window.closeAuthModal()
+    };
+    let lastFocusedBeforeModal = null;
+
+    // Called by the open* functions once a modal is displayed.
+    function onModalOpened(modalId) {
+        lastFocusedBeforeModal = document.activeElement;
+        const modal = document.getElementById(modalId);
+        const focusable = modal.querySelector('input, button, select, textarea');
+        if (focusable) focusable.focus();
+    }
+
+    function onModalClosed() {
+        if (lastFocusedBeforeModal && document.contains(lastFocusedBeforeModal)) {
+            lastFocusedBeforeModal.focus();
+        }
+        lastFocusedBeforeModal = null;
+    }
+
+    function openModalIds() {
+        return Object.keys(MODAL_CLOSERS)
+            .filter(id => document.getElementById(id).style.display === 'flex');
+    }
+
+    // Click the backdrop to dismiss.
+    document.addEventListener('click', event => {
+        const closer = MODAL_CLOSERS[event.target.id];
+        if (closer) closer();
+    });
+
+    document.addEventListener('keydown', event => {
+        if (event.key !== 'Escape') return;
+        const open = openModalIds();
+        if (open.length) {
+            event.preventDefault();
+            MODAL_CLOSERS[open[open.length - 1]]();
+        }
+    });
+
+    // Keep Tab inside an open modal rather than letting it wander behind it.
+    document.addEventListener('keydown', event => {
+        if (event.key !== 'Tab') return;
+        const open = openModalIds();
+        if (!open.length) return;
+
+        const modal = document.getElementById(open[open.length - 1]);
+        const items = Array.from(modal.querySelectorAll('a[href], button, input, select, textarea'))
+            .filter(el => !el.disabled && el.offsetParent !== null);
+        if (!items.length) return;
+
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
+    });
 
     // --- COMMUNITY STATS SYSTEM ---
     function getMonthKey() {
@@ -1439,10 +1970,21 @@
 
                 window.renderChart(labels, gradeData, exportData, pointsData);
             }
-        } catch (error) { console.error(error); }
+        } catch (error) {
+            console.error(error);
+            window.toast('Could not load community statistics right now.', 'error');
+        }
     }
 
-    window.renderChart = function(labels, gradeData, exportData, pointsData) {
+    window.renderChart = async function(labels, gradeData, exportData, pointsData) {
+        try {
+            await loadScript('https://cdn.jsdelivr.net/npm/chart.js');
+        } catch (err) {
+            console.error(err);
+            window.toast('Could not load the chart library.', 'error');
+            return;
+        }
+
         const ctx = document.getElementById('statsChart').getContext('2d');
         if (myChart) myChart.destroy();
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -1494,36 +2036,255 @@
         };
 
         const blob = new Blob([JSON.stringify(dataToExport, null, 2)], {type: "application/json"});
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-        a.download = getCustomFileName('json');
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        downloadBlob(blob, getCustomFileName('json'));
         window.closeShareModal();
+        window.toast('Backup saved.', 'success');
     }
 
     window.triggerRestore = function() { document.getElementById('restoreInput').click(); window.closeShareModal(); }
+
+    /* --- REPORT EXPORTS (text, email, CSV, image) --- */
+
+    // Reads the live table so an export always matches what's on screen.
+    function collectReport() {
+        const rows = [];
+        document.querySelectorAll('#tableBody tr').forEach(row => {
+            const name = row.querySelector('.category-input').value.trim();
+            const earnedRaw = row.querySelector('.earned').value.trim();
+            const maxRaw = row.querySelector('.max').value.trim();
+            const weightRaw = row.querySelector('.weight').value.trim();
+            if (!name && !earnedRaw && !maxRaw && !weightRaw) return; // skip blank rows
+
+            const earned = parseScore(earnedRaw);
+            const max = parseScore(maxRaw);
+            rows.push({
+                name: name || 'Untitled category',
+                earned: earnedRaw ? earned : '',
+                max: maxRaw ? max : '',
+                percent: max > 0 ? (earned / max) * 100 : null,
+                weight: weightRaw ? (parseFloat(weightRaw) || 0) : ''
+            });
+        });
+
+        return {
+            courseName: document.getElementById('courseNameInput').value.trim() || 'Untitled Course',
+            rows: rows,
+            totalWeight: document.getElementById('weightDisplay').innerText.replace('Total Weight: ', ''),
+            finalGrade: document.getElementById('finalGrade').innerText,
+            gpa: document.getElementById('finalGPA').innerText,
+            letter: document.getElementById('finalLetter').innerText,
+            date: new Date().toLocaleDateString()
+        };
+    }
+
+    function buildReportText() {
+        const r = collectReport();
+        const lines = [];
+        lines.push(r.courseName);
+        lines.push('Grade report — ' + r.date);
+        lines.push('');
+
+        if (r.rows.length === 0) {
+            lines.push('(No categories entered yet.)');
+        } else {
+            r.rows.forEach(row => {
+                const score = row.max !== '' ? `${row.earned || 0}/${row.max}` : '—';
+                const pct = row.percent !== null ? ` (${row.percent.toFixed(2)}%)` : '';
+                const weight = row.weight !== '' ? ` · weight ${row.weight}%` : '';
+                lines.push(`• ${row.name}: ${score}${pct}${weight}`);
+            });
+        }
+
+        lines.push('');
+        lines.push(`Total weight: ${r.totalWeight}`);
+        lines.push(`Final grade: ${r.finalGrade}  |  Letter: ${r.letter}  |  GPA: ${r.gpa}`);
+
+        const goal = document.getElementById('goalResult').innerText.trim();
+        if (goal) {
+            lines.push('');
+            lines.push('Goal: ' + goal.replace(/\s*\n\s*/g, ' '));
+        }
+        return lines.join('\n');
+    }
+
+    window.copyToClipboard = async function() {
+        const text = buildReportText();
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(text);
+            } else {
+                // Fallback for non-secure contexts (e.g. opened as a local file).
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.setAttribute('readonly', '');
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                const ok = document.execCommand('copy');
+                document.body.removeChild(ta);
+                if (!ok) throw new Error('copy command rejected');
+            }
+            if (window.trackExport) window.trackExport();
+            window.closeShareModal();
+            window.toast('Report copied to your clipboard.', 'success');
+        } catch (err) {
+            console.error(err);
+            window.toast('Could not copy automatically — check the console for the report text.', 'error');
+            console.log(text);
+        }
+    };
+
+    window.emailReport = function() {
+        const r = collectReport();
+        const subject = `Grade report: ${r.courseName} (${r.finalGrade})`;
+        const body = buildReportText();
+        const href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+        if (href.length > 1800) {
+            // Very long mailto URLs get truncated by some mail clients.
+            window.toast('This report is long — some email apps may cut it off.', 'error');
+        }
+        if (window.trackExport) window.trackExport();
+        window.closeShareModal();
+        window.location.href = href;
+    };
+
+    function csvCell(value) {
+        const s = value === null || value === undefined ? '' : String(value);
+        return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }
+
+    function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    window.downloadCSV = function() {
+        const r = collectReport();
+        const lines = [
+            ['Course', r.courseName].map(csvCell).join(','),
+            ['Date', r.date].map(csvCell).join(','),
+            '',
+            ['Category', 'Points Earned', 'Total Points', 'Current %', 'Weight %'].map(csvCell).join(',')
+        ];
+
+        r.rows.forEach(row => {
+            lines.push([
+                row.name,
+                row.earned,
+                row.max,
+                row.percent !== null ? row.percent.toFixed(2) : '',
+                row.weight
+            ].map(csvCell).join(','));
+        });
+
+        lines.push('');
+        lines.push(['Total Weight', r.totalWeight].map(csvCell).join(','));
+        lines.push(['Final Grade', r.finalGrade].map(csvCell).join(','));
+        lines.push(['Letter', r.letter].map(csvCell).join(','));
+        lines.push(['GPA', r.gpa].map(csvCell).join(','));
+
+        // Leading BOM so Excel reads accented category names correctly.
+        const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+        downloadBlob(blob, getCustomFileName('csv'));
+
+        if (window.trackExport) window.trackExport();
+        window.closeShareModal();
+        window.toast('CSV downloaded.', 'success');
+    };
+
+    window.downloadImage = async function() {
+        const fileName = getCustomFileName('png');
+        window.closeShareModal();
+        window.toast('Rendering image…');
+
+        try {
+            await loadScript('https://html2canvas.hertzen.com/dist/html2canvas.min.js');
+            const target = document.getElementById('mainAppContainer');
+            const bg = getComputedStyle(document.body).backgroundColor;
+
+            const canvas = await html2canvas(target, {
+                backgroundColor: bg,
+                scale: Math.min(window.devicePixelRatio || 1, 2),
+                useCORS: true,
+                logging: false,
+                // Inputs render as empty boxes in the clone unless their typed
+                // value is baked in as an attribute first.
+                onclone: doc => {
+                    doc.querySelectorAll('input').forEach(el => el.setAttribute('value', el.value));
+                    const status = doc.getElementById('syncStatus');
+                    if (status) status.style.display = 'none';
+                }
+            });
+
+            canvas.toBlob(blob => {
+                if (!blob) throw new Error('canvas produced no image');
+                downloadBlob(blob, fileName);
+                if (window.trackExport) window.trackExport();
+                window.toast('Image saved.', 'success');
+            }, 'image/png');
+        } catch (err) {
+            console.error(err);
+            window.toast('Could not create the image. Check your connection and try again.', 'error');
+        }
+    };
 
     window.handleRestore = function(input) {
         const file = input.files[0];
         if (!file) return;
         
         const reader = new FileReader();
+        reader.onerror = function() {
+            window.toast('Could not read that file.', 'error');
+            input.value = '';
+        };
         reader.onload = function(e) {
             try {
                 const data = JSON.parse(e.target.result);
+                if (!data || typeof data !== 'object') throw new Error('Not a grade calculator backup.');
+                if (data.format === 'multi' && (!data.coursesData || typeof data.coursesData !== 'object')) {
+                    throw new Error('This backup is missing its course data.');
+                }
+
                 if(confirm(`Restore backup data? This will merge with your current courses.`)) {
                     clearTimeout(window.calcDebounceTimer);
-                    
+
                     let prevCount = Object.keys(window.coursesData).length;
-                    
+
                     if (data.format === 'multi') {
-                        Object.assign(window.coursesData, data.coursesData);
-                        window.activeCourseId = data.activeCourseId;
+                        const clean = {};
+                        Object.entries(data.coursesData).forEach(([id, course]) => {
+                            if (!course || typeof course !== 'object') return;
+                            clean[id] = {
+                                courseName: typeof course.courseName === 'string' ? course.courseName : '',
+                                targetGrade: course.targetGrade != null ? String(course.targetGrade) : '',
+                                rows: Array.isArray(course.rows) ? course.rows.map(r => ({
+                                    name: r && r.name != null ? String(r.name) : '',
+                                    earned: r && r.earned != null ? String(r.earned) : '',
+                                    max: r && r.max != null ? String(r.max) : '',
+                                    weight: r && r.weight != null ? String(r.weight) : ''
+                                })) : []
+                            };
+                        });
+                        if (Object.keys(clean).length === 0) throw new Error('That backup contains no courses.');
+
+                        Object.assign(window.coursesData, clean);
+                        window.activeCourseId = clean[data.activeCourseId]
+                            ? data.activeCourseId
+                            : Object.keys(clean)[0];
                     } else {
                         const newId = generateId();
                         window.coursesData[newId] = {
                             courseName: data.courseName || 'Imported Course',
                             targetGrade: data.targetGrade || '',
-                            rows: data.rows || []
+                            rows: Array.isArray(data.rows) ? data.rows : []
                         };
                         window.activeCourseId = newId;
                     }
@@ -1539,10 +2300,15 @@
                     
                     const importedName = file.name.replace(/\.json$/i, '');
                     document.getElementById('exportFileName').value = importedName;
-                    
-                    alert("Backup restored successfully!");
+
+                    window.toast('Backup restored.', 'success');
                 }
-            } catch (err) { alert("Error reading file: " + err.message); }
+            } catch (err) {
+                console.error(err);
+                window.toast(err instanceof SyntaxError
+                    ? 'That file isn\'t valid JSON.'
+                    : ('Could not restore: ' + err.message), 'error');
+            }
             input.value = '';
         };
         reader.readAsText(file);
@@ -1589,16 +2355,17 @@
 
     /* --- INIT --- */
     document.addEventListener('DOMContentLoaded', () => {
-        const savedTheme = localStorage.getItem('theme');
-        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
-            document.documentElement.setAttribute('data-theme', 'dark');
-            document.getElementById('themeBtn').innerText = '🌙';
-        } else {
-            document.documentElement.setAttribute('data-theme', 'light');
-            document.getElementById('themeBtn').innerText = '☀️';
-        }
+        // The theme itself was applied before first paint; just match the button.
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        document.getElementById('themeBtn').innerText = isDark ? '🌙' : '☀️';
         document.getElementById('reportDate').innerText = new Date().toLocaleDateString();
+
+        // Follow the system theme as long as the user hasn't picked one.
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+            if (localStorage.getItem('theme')) return;
+            document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+            document.getElementById('themeBtn').innerText = e.matches ? '🌙' : '☀️';
+        });
     });
 </script>
 </body>
