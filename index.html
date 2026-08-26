@@ -390,12 +390,19 @@
         .nav-course-grade.grade-ok { background-color: var(--warn-soft); color: var(--warn-color); }
         .nav-course-grade.grade-bad { background-color: var(--bad-soft); color: var(--bad-color); }
 
-        .nav-course-move,
-        .nav-course-remove {
+        /*
+         * Row controls are hidden with display, not opacity: invisible-but-
+         * present controls still take their width, which left the resting row —
+         * the one you actually read — with the least space for the name.
+         * :focus and :focus-within keep them tab-reachable, since a display:none
+         * control cannot be focused: focusing the row reveals them, and focus
+         * then moves into them.
+         */
+        .nav-row-action {
             width: 22px;
             height: 22px;
             flex: none;
-            display: grid;
+            display: none;
             place-items: center;
             background: none;
             border: none;
@@ -404,18 +411,39 @@
             font-size: 16px;
             line-height: 1;
             cursor: pointer;
-            opacity: 0;
-            transition: opacity 0.15s, background-color 0.15s, color 0.15s;
+            transition: background-color 0.15s, color 0.15s;
         }
-        .nav-course-move svg { width: 13px; height: 13px; }
-        .nav-course:hover .nav-course-move,
-        .nav-course:hover .nav-course-remove,
-        .nav-course-move:focus-visible,
-        .nav-course-remove:focus-visible { opacity: 1; }
+        .nav-row-action svg { width: 13px; height: 13px; }
+
+        .nav-course:hover .nav-row-action,
+        .nav-course:focus .nav-row-action,
+        .nav-course:focus-within .nav-row-action { display: grid; }
+
+        .nav-course-rename:hover,
         .nav-course-move:hover { background-color: var(--accent-soft); color: var(--accent-color); }
         .nav-course-remove:hover { background-color: var(--bad-soft); color: var(--delete-btn); }
+
+        /* Three controls and the grade badge together would crush the name, so
+           on pointer devices the badge steps aside while the controls show. */
+        .nav-course:hover .nav-course-grade,
+        .nav-course:focus .nav-course-grade,
+        .nav-course:focus-within .nav-course-grade { display: none; }
+
+        /* Touch has no hover: the controls are always out, and the grade stays
+           too — it's the reason to look at the list at all. */
         @media (hover: none) {
-            .nav-course-move, .nav-course-remove { opacity: 1; }
+            .nav-row-action { display: grid; }
+            .nav-course:hover .nav-course-grade,
+            .nav-course:focus .nav-course-grade,
+            .nav-course:focus-within .nav-course-grade { display: block; }
+        }
+
+        /* --- INLINE COURSE RENAME --- */
+        .nav-course-editing { padding: 2px 0; }
+        .nav-course-input {
+            font-size: 13.5px !important;
+            font-weight: 600;
+            padding: 8px 10px !important;
         }
 
         /* --- DRAG TO ANOTHER SEMESTER --- */
@@ -527,24 +555,23 @@
             gap: 8px;
             margin-top: 10px;
         }
-        .course-meta label {
+        .course-meta-label {
             font-size: 11px;
             font-weight: 700;
             letter-spacing: 0.07em;
             text-transform: uppercase;
             color: var(--text-muted);
         }
-        .course-meta select {
-            width: auto;
-            min-width: 150px;
-            max-width: 240px;
-            padding: 6px 30px 6px 10px;
+        /* Read-only: the semester is changed from the course menu. */
+        .course-semester {
+            padding: 4px 11px;
+            border-radius: 999px;
+            background-color: var(--surface-2);
+            border: 1px solid var(--border-color);
             font-size: 13px;
             font-weight: 600;
-            background-color: var(--surface-2);
-            border-color: transparent;
+            color: var(--text-secondary);
         }
-        .course-meta select:hover { border-color: var(--border-strong); }
 
         .container {
             background-color: var(--container-bg);
@@ -1467,7 +1494,19 @@
         @media print {
             @page { margin: 0.75in; size: auto; }
             .buttons-left, .delete-btn, .header-actions, .buttons-row, .modal-overlay, .stats-btn, .app-footer, .toast-region, .sync-status, .weight-hint, .grade-meter, .theme-switch,
-            .course-nav, .nav-scrim, .nav-open, .course-meta { display: none !important; }
+            .course-nav, .nav-scrim, .nav-open, .move-menu { display: none !important; }
+
+            /* Now that it's a label rather than a dropdown, the semester is
+               worth carrying onto the printed report. */
+            .course-meta { display: block !important; margin: 6px 0 0 !important; }
+            .course-meta-label { color: #555 !important; }
+            .course-semester {
+                background: transparent !important;
+                border: none !important;
+                padding: 0 0 0 6px !important;
+                color: #000 !important;
+                font-weight: 700 !important;
+            }
             .app-shell { display: block !important; max-width: 100% !important; }
 
             .goal-section { display: none; }
@@ -1541,8 +1580,8 @@
             <label class="visually-hidden" for="courseNameInput">Course name</label>
             <input type="text" id="courseNameInput" class="course-name-input" placeholder="Enter Course Name" oninput="window.updatePageTitle(this)">
             <div class="course-meta">
-                <label for="courseSemesterSelect">Semester</label>
-                <select id="courseSemesterSelect" onchange="window.moveCourseToSemester(this.value)"></select>
+                <span class="course-meta-label">Semester</span>
+                <span class="course-semester" id="courseSemesterLabel"></span>
             </div>
             <div class="report-date" id="reportDate"></div>
         </div>
@@ -2274,7 +2313,7 @@
     // are spans given button semantics and key handling.
     function rowControl(className, label, handler) {
         const el = document.createElement('span');
-        el.className = className;
+        el.className = 'nav-row-action ' + className;
         el.setAttribute('role', 'button');
         el.setAttribute('tabindex', '0');
         el.setAttribute('aria-label', label);
@@ -2395,9 +2434,22 @@
                 const label = document.createElement('span');
                 label.className = 'nav-course-name';
                 label.textContent = courseLabel(courseId);
+                label.title = courseLabel(courseId);  // long names truncate
                 item.appendChild(label);
 
                 item.appendChild(buildNavGrade(courseId));
+
+                const rename = rowControl('nav-course-rename', 'Rename ' + courseLabel(courseId),
+                    () => startCourseRename(courseId, item));
+                rename.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+                    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICON_PENCIL + '</svg>';
+                item.appendChild(rename);
+
+                // Double-click the row itself as a shortcut to the same thing.
+                item.addEventListener('dblclick', e => {
+                    e.preventDefault();
+                    startCourseRename(courseId, item);
+                });
 
                 // Dragging is only worth offering when there's somewhere to go.
                 if (window.semesterOrder.length > 1) {
@@ -2448,7 +2500,7 @@
             body.appendChild(group);
         });
 
-        renderSemesterSelect();
+        renderSemesterLabel();
     }
 
     function buildNavGrade(courseId) {
@@ -2465,7 +2517,10 @@
         const item = document.querySelector('.nav-course[data-course-id="' + window.activeCourseId + '"]');
         if (!item) return;
         const label = item.querySelector('.nav-course-name');
-        if (label) label.textContent = courseLabel(window.activeCourseId);
+        if (label) {
+            label.textContent = courseLabel(window.activeCourseId);
+            label.title = label.textContent;
+        }
         const badge = item.querySelector('.nav-course-grade');
         if (badge) badge.replaceWith(buildNavGrade(window.activeCourseId));
     }
@@ -2474,6 +2529,53 @@
     // Backwards-compatible alias: the tab strip this replaced was called from
     // several places, including the cloud-load path.
     window.renderTabs = function() { window.renderCourseNav(); };
+
+    /*
+     * Renames a course in place. The row is a <button>, and an <input> inside
+     * one can't be typed into, so the whole row is swapped for an edit field
+     * and rebuilt from the model once editing finishes.
+     */
+    function startCourseRename(courseId, item) {
+        const wrap = document.createElement('div');
+        wrap.className = 'nav-course-editing';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'nav-course-input';
+        input.value = window.coursesData[courseId].courseName || '';
+        input.placeholder = 'Course name';
+        input.setAttribute('aria-label', 'Course name');
+        wrap.appendChild(input);
+
+        let settled = false;
+        const commit = save => {
+            if (settled) return;
+            settled = true;
+
+            if (save) {
+                const value = input.value.trim();
+                window.coursesData[courseId].courseName = value;
+
+                // The open course also owns the header field and the page title.
+                if (courseId === window.activeCourseId) {
+                    document.getElementById('courseNameInput').value = value;
+                    document.title = value || 'Grade Calculator';
+                }
+                window.persistToStorage();
+            }
+            window.renderCourseNav();
+        };
+
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); commit(true); }
+            else if (e.key === 'Escape') { e.preventDefault(); commit(false); }
+        });
+        input.addEventListener('blur', () => commit(true));
+
+        item.replaceWith(wrap);
+        input.focus();
+        input.select();
+    }
 
     function startSemesterRename(semId, nameEl, head) {
         const input = document.createElement('input');
@@ -2557,19 +2659,14 @@
         window.toast(`Deleted "${name}".`);
     };
 
-    // Populates the semester picker shown above the open course.
-    function renderSemesterSelect() {
-        const select = document.getElementById('courseSemesterSelect');
-        if (!select) return;
-        select.innerHTML = '';
-        window.semesterOrder.forEach(id => {
-            const option = document.createElement('option');
-            option.value = id;
-            option.textContent = window.semesters[id].name;
-            select.appendChild(option);
-        });
+    // Shows which semester the open course belongs to. Read-only — moving a
+    // course happens in the course menu, by dragging or via its move button.
+    function renderSemesterLabel() {
+        const label = document.getElementById('courseSemesterLabel');
+        if (!label) return;
         const course = window.coursesData[window.activeCourseId];
-        if (course) select.value = course.semesterId;
+        const semester = course && window.semesters[course.semesterId];
+        label.textContent = semester ? semester.name : '—';
     }
 
     /*
@@ -2589,10 +2686,6 @@
         return true;
     };
 
-    // Bound to the semester picker shown above the open course.
-    window.moveCourseToSemester = function(semesterId) {
-        window.moveCourse(window.activeCourseId, semesterId);
-    };
 
     /* --- MOVE MENU (touch- and keyboard-accessible alternative to dragging) --- */
     let moveMenuEl = null;
@@ -2750,7 +2843,7 @@
 
     window.renderCourseUI = function() {
         const data = window.coursesData[window.activeCourseId];
-        renderSemesterSelect();
+        renderSemesterLabel();
         document.getElementById('courseNameInput').value = data.courseName || '';
         document.getElementById('targetGrade').value = data.targetGrade || '';
         document.getElementById('goalResult').innerHTML = '';
