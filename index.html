@@ -390,6 +390,7 @@
         .nav-course-grade.grade-ok { background-color: var(--warn-soft); color: var(--warn-color); }
         .nav-course-grade.grade-bad { background-color: var(--bad-soft); color: var(--bad-color); }
 
+        .nav-course-move,
         .nav-course-remove {
             width: 22px;
             height: 22px;
@@ -406,10 +407,77 @@
             opacity: 0;
             transition: opacity 0.15s, background-color 0.15s, color 0.15s;
         }
+        .nav-course-move svg { width: 13px; height: 13px; }
+        .nav-course:hover .nav-course-move,
         .nav-course:hover .nav-course-remove,
+        .nav-course-move:focus-visible,
         .nav-course-remove:focus-visible { opacity: 1; }
+        .nav-course-move:hover { background-color: var(--accent-soft); color: var(--accent-color); }
         .nav-course-remove:hover { background-color: var(--bad-soft); color: var(--delete-btn); }
-        @media (hover: none) { .nav-course-remove { opacity: 1; } }
+        @media (hover: none) {
+            .nav-course-move, .nav-course-remove { opacity: 1; }
+        }
+
+        /* --- DRAG TO ANOTHER SEMESTER --- */
+        .nav-course[draggable="true"] { cursor: grab; }
+        .nav-course[draggable="true"]:active { cursor: grabbing; }
+        .nav-course.dragging { opacity: 0.4; }
+
+        .sem-group.drop-target .sem-courses {
+            background-color: var(--accent-soft);
+            outline: 2px dashed var(--accent-color);
+            outline-offset: 2px;
+            border-radius: var(--radius-sm);
+        }
+        .sem-group.drop-target .sem-name { color: var(--accent-color); }
+
+        /* Pointer drag is mouse-only, so touch and keyboard get this menu. */
+        .move-menu {
+            position: fixed;
+            z-index: 1200;
+            min-width: 210px;
+            max-width: 280px;
+            padding: 6px;
+            background-color: var(--container-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            animation: modal-in 0.14s ease-out;
+        }
+        .move-menu-title {
+            margin: 4px 8px 6px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+        .move-menu button {
+            display: block;
+            width: 100%;
+            padding: 9px 10px;
+            text-align: left;
+            background: none;
+            border: none;
+            border-radius: var(--radius-sm);
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 13.5px;
+            font-weight: 600;
+            cursor: pointer;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .move-menu button:hover:not(:disabled) { background-color: var(--accent-soft); color: var(--accent-color); }
+        .move-menu button:disabled {
+            color: var(--text-muted);
+            cursor: default;
+        }
+        .move-menu button[aria-current="true"]::after {
+            content: ' · current';
+            font-weight: 500;
+        }
 
         .nav-add-course {
             display: flex;
@@ -2202,6 +2270,36 @@
     const ICON_PENCIL = '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>';
     const ICON_TRASH = '<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>';
 
+    // A course row is a <button>; its controls can't be buttons too, so they
+    // are spans given button semantics and key handling.
+    function rowControl(className, label, handler) {
+        const el = document.createElement('span');
+        el.className = className;
+        el.setAttribute('role', 'button');
+        el.setAttribute('tabindex', '0');
+        el.setAttribute('aria-label', label);
+        el.draggable = false;
+
+        const run = e => {
+            e.stopPropagation();
+            e.preventDefault();
+            handler(e);
+        };
+        el.addEventListener('click', run);
+        el.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ' ') run(e);
+        });
+        // Pressing a control must not begin dragging the row behind it.
+        el.addEventListener('mousedown', () => {
+            suppressDrag = true;
+            setTimeout(() => { suppressDrag = false; }, 0);
+        });
+        return el;
+    }
+
+    let draggingCourseId = null;
+    let suppressDrag = false;
+
     // Full rebuild of the course menu. Cheap enough for a realistic number of
     // courses; incremental updates go through refreshActiveNavItem().
     window.renderCourseNav = function() {
@@ -2218,6 +2316,39 @@
 
             const group = document.createElement('div');
             group.className = 'sem-group';
+
+            // The whole group — header, list and empty state — accepts a drop.
+            // dragenter/dragleave fire for every child, so track depth rather
+            // than clearing the highlight the moment the pointer crosses one.
+            let dragDepth = 0;
+            const canAccept = () => draggingCourseId &&
+                window.coursesData[draggingCourseId] &&
+                window.coursesData[draggingCourseId].semesterId !== semId;
+
+            group.addEventListener('dragenter', e => {
+                if (!canAccept()) return;
+                e.preventDefault();
+                dragDepth++;
+                group.classList.add('drop-target');
+            });
+            group.addEventListener('dragover', e => {
+                if (!canAccept()) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+            });
+            group.addEventListener('dragleave', () => {
+                dragDepth = Math.max(0, dragDepth - 1);
+                if (dragDepth === 0) group.classList.remove('drop-target');
+            });
+            group.addEventListener('drop', e => {
+                if (!draggingCourseId) return;
+                e.preventDefault();
+                dragDepth = 0;
+                group.classList.remove('drop-target');
+                const moved = draggingCourseId;
+                draggingCourseId = null;
+                window.moveCourse(moved, semId);
+            });
 
             const head = document.createElement('div');
             head.className = 'sem-head';
@@ -2268,21 +2399,37 @@
 
                 item.appendChild(buildNavGrade(courseId));
 
-                if (!onlyOneCourse) {
-                    const remove = document.createElement('span');
-                    remove.className = 'nav-course-remove';
-                    remove.setAttribute('role', 'button');
-                    remove.setAttribute('tabindex', '0');
-                    remove.setAttribute('aria-label', 'Remove ' + courseLabel(courseId));
-                    remove.textContent = '×';
-                    const doRemove = e => {
-                        e.stopPropagation();
-                        window.deleteCourse(courseId);
-                    };
-                    remove.addEventListener('click', doRemove);
-                    remove.addEventListener('keydown', e => {
-                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); doRemove(e); }
+                // Dragging is only worth offering when there's somewhere to go.
+                if (window.semesterOrder.length > 1) {
+                    item.draggable = true;
+                    item.addEventListener('dragstart', e => {
+                        if (suppressDrag) { e.preventDefault(); return; }
+                        draggingCourseId = courseId;
+                        item.classList.add('dragging');
+                        e.dataTransfer.effectAllowed = 'move';
+                        // Firefox refuses to start a drag without payload.
+                        e.dataTransfer.setData('text/plain', courseId);
                     });
+                    item.addEventListener('dragend', () => {
+                        draggingCourseId = null;
+                        item.classList.remove('dragging');
+                        document.querySelectorAll('.sem-group.drop-target')
+                            .forEach(el => el.classList.remove('drop-target'));
+                    });
+
+                    const move = rowControl('nav-course-move', 'Move ' + courseLabel(courseId) + ' to another semester',
+                        e => openMoveMenu(courseId, e.currentTarget));
+                    move.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+                        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+                        '<path d="M5 9l-3 3 3 3"/><path d="M2 12h10"/>' +
+                        '<path d="M14 4h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"/></svg>';
+                    item.appendChild(move);
+                }
+
+                if (!onlyOneCourse) {
+                    const remove = rowControl('nav-course-remove', 'Remove ' + courseLabel(courseId),
+                        () => window.deleteCourse(courseId));
+                    remove.textContent = '×';
                     item.appendChild(remove);
                 }
 
@@ -2425,14 +2572,106 @@
         if (course) select.value = course.semesterId;
     }
 
-    window.moveCourseToSemester = function(semesterId) {
-        const course = window.coursesData[window.activeCourseId];
-        if (!course || !window.semesters[semesterId]) return;
+    /*
+     * Single place a course changes semester, whichever control asked for it:
+     * the picker above the open course, a drag in the menu, or the move menu.
+     */
+    window.moveCourse = function(courseId, semesterId) {
+        const course = window.coursesData[courseId];
+        if (!course || !window.semesters[semesterId]) return false;
+        if (course.semesterId === semesterId) return false;
+
+        const label = courseLabel(courseId);
         course.semesterId = semesterId;
         window.persistToStorage();
         window.renderCourseNav();
-        window.toast(`Moved to "${window.semesters[semesterId].name}".`);
+        window.toast(`Moved "${label}" to "${window.semesters[semesterId].name}".`);
+        return true;
     };
+
+    // Bound to the semester picker shown above the open course.
+    window.moveCourseToSemester = function(semesterId) {
+        window.moveCourse(window.activeCourseId, semesterId);
+    };
+
+    /* --- MOVE MENU (touch- and keyboard-accessible alternative to dragging) --- */
+    let moveMenuEl = null;
+    let moveMenuReturnFocus = null;
+
+    function closeMoveMenu(restoreFocus) {
+        if (!moveMenuEl) return;
+        moveMenuEl.remove();
+        moveMenuEl = null;
+        if (restoreFocus !== false && moveMenuReturnFocus && document.contains(moveMenuReturnFocus)) {
+            moveMenuReturnFocus.focus();
+        }
+        moveMenuReturnFocus = null;
+    }
+    window.closeMoveMenu = closeMoveMenu;
+
+    function openMoveMenu(courseId, anchor) {
+        closeMoveMenu(false);
+        moveMenuReturnFocus = anchor;
+
+        const menu = document.createElement('div');
+        menu.className = 'move-menu';
+        menu.setAttribute('role', 'menu');
+        menu.setAttribute('aria-label', 'Move ' + courseLabel(courseId) + ' to semester');
+
+        const title = document.createElement('p');
+        title.className = 'move-menu-title';
+        title.textContent = 'Move to semester';
+        menu.appendChild(title);
+
+        const currentSemester = window.coursesData[courseId].semesterId;
+
+        window.semesterOrder.forEach(semId => {
+            const option = document.createElement('button');
+            option.type = 'button';
+            option.setAttribute('role', 'menuitem');
+            option.textContent = window.semesters[semId].name;
+            if (semId === currentSemester) {
+                option.setAttribute('aria-current', 'true');
+                option.disabled = true;
+            } else {
+                option.addEventListener('click', () => {
+                    closeMoveMenu(false);
+                    window.moveCourse(courseId, semId);
+                });
+            }
+            menu.appendChild(option);
+        });
+
+        document.body.appendChild(menu);
+
+        // Anchor below the button, flipping up when it would overflow the
+        // bottom, then clamp to the viewport on both axes — the anchor can sit
+        // near an edge, or partly offscreen while the drawer is still sliding in.
+        const anchorRect = anchor.getBoundingClientRect();
+        const menuRect = menu.getBoundingClientRect();
+
+        let top = anchorRect.bottom + 6;
+        if (top + menuRect.height > window.innerHeight - 8) {
+            top = anchorRect.top - menuRect.height - 6;
+        }
+        let left = anchorRect.left;
+
+        const clamp = (value, limit) => Math.min(Math.max(8, value), Math.max(8, limit));
+        menu.style.top = clamp(top, window.innerHeight - menuRect.height - 8) + 'px';
+        menu.style.left = clamp(left, window.innerWidth - menuRect.width - 8) + 'px';
+
+        const firstEnabled = menu.querySelector('button:not(:disabled)');
+        (firstEnabled || menu).focus();
+
+        moveMenuEl = menu;
+    }
+
+    document.addEventListener('click', event => {
+        if (moveMenuEl && !moveMenuEl.contains(event.target)) closeMoveMenu(false);
+    });
+    // A fixed-position menu would drift away from its row once the list scrolls.
+    window.addEventListener('scroll', () => closeMoveMenu(false), true);
+    window.addEventListener('resize', () => closeMoveMenu(false));
 
     /* --- COURSE NAV DRAWER (narrow screens) --- */
     let navReturnFocus = null;
@@ -3007,7 +3246,10 @@
     document.addEventListener('keydown', event => {
         if (event.key !== 'Escape') return;
         const open = openModalIds();
-        if (open.length) {
+        if (window.closeMoveMenu && document.querySelector('.move-menu')) {
+            event.preventDefault();
+            window.closeMoveMenu();
+        } else if (open.length) {
             event.preventDefault();
             MODAL_CLOSERS[open[open.length - 1]]();
         } else if (document.getElementById('courseNav').classList.contains('open')) {
