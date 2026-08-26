@@ -175,106 +175,317 @@
             transition: background-color 0.25s ease, color 0.25s ease;
         }
 
-        /* --- TABS SYSTEM --- */
-        .tabs-wrapper {
+        /* --- APP SHELL (course menu + report) --- */
+        .app-shell {
             width: 100%;
-            max-width: 1200px;
-            display: flex;
-            align-items: flex-end;
-            margin-bottom: -1px; /* Overlap container border */
-            gap: 4px;
-            overflow-x: auto;
-            overscroll-behavior-x: contain;
-            scrollbar-width: thin;
-            z-index: 10;
-            position: relative;
-            padding-bottom: 1px;
+            max-width: 1500px;
+            display: grid;
+            grid-template-columns: 264px minmax(0, 1fr);
+            gap: 20px;
+            align-items: start;
         }
 
-        .tabs-wrapper::-webkit-scrollbar { height: 3px; }
-        .tabs-wrapper::-webkit-scrollbar-track { background: transparent; }
-        .tabs-wrapper::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+        /* --- COURSE NAV (sidebar on desktop, left drawer on mobile) --- */
+        .course-nav {
+            background-color: var(--container-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 20px;
+            max-height: calc(100vh - 40px);
+            overflow: hidden;
+        }
 
-        .course-tab {
-            padding: 11px 16px;
-            background-color: transparent;
-            border: 1px solid transparent;
-            border-bottom: none;
-            border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-            cursor: pointer;
-            color: var(--text-secondary);
-            font-weight: 600;
-            font-size: 14px;
+        .nav-head {
             display: flex;
             align-items: center;
-            gap: 8px;
-            transition: color 0.15s, background-color 0.15s;
-            white-space: nowrap;
-            max-width: 220px;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 16px 16px 12px;
+            border-bottom: 1px solid var(--border-color);
         }
-
-        .course-tab > span:first-child {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+        .nav-title {
+            margin: 0;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            color: var(--text-muted);
         }
-
-        .course-tab:hover { color: var(--text-main); background-color: var(--accent-soft); }
-
-        .course-tab.active {
-            background-color: var(--container-bg);
-            color: var(--accent-color);
-            border-color: var(--border-color);
-            border-bottom: 1px solid var(--container-bg);
-            box-shadow: 0 -1px 3px rgba(16, 24, 40, 0.04);
-        }
-
-        .close-tab {
-            font-size: 16px;
+        /* Only the drawer needs a close affordance. */
+        .nav-close {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
             line-height: 1;
-            width: 18px;
-            height: 18px;
-            display: grid;
-            place-items: center;
-            border-radius: 50%;
-            opacity: 0.45;
-            transition: opacity 0.15s, background-color 0.15s, color 0.15s;
+            width: 34px;
+            height: 34px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
         }
-        .close-tab:hover {
-            opacity: 1;
-            color: var(--delete-btn);
-            background-color: var(--bad-soft);
+        .nav-close:hover { background-color: var(--surface-2); color: var(--text-main); }
+
+        .nav-body {
+            flex: 1;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            padding: 10px 10px 4px;
         }
 
-        .add-tab-btn {
-            padding: 11px 14px;
-            background-color: transparent;
+        .nav-foot {
+            padding: 10px;
+            border-top: 1px solid var(--border-color);
+        }
+        .nav-add-semester {
+            width: 100%;
+            height: 38px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            background: none;
             border: 1px dashed var(--border-strong);
-            border-bottom: none;
-            border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-            cursor: pointer;
+            border-radius: var(--radius-sm);
             color: var(--text-secondary);
             font-family: inherit;
+            font-size: 13px;
             font-weight: 600;
-            font-size: 14px;
+            cursor: pointer;
             transition: color 0.15s, border-color 0.15s, background-color 0.15s;
-            white-space: nowrap;
-            margin-left: 2px;
         }
-        .add-tab-btn:hover {
+        .nav-add-semester:hover {
             color: var(--accent-color);
             border-color: var(--accent-color);
             background-color: var(--accent-soft);
         }
 
+        /* --- SEMESTER GROUPS --- */
+        .sem-group { margin-bottom: 14px; }
+        .sem-group:last-child { margin-bottom: 4px; }
+
+        .sem-head {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 6px 4px 8px;
+            border-radius: var(--radius-sm);
+        }
+        .sem-head:hover { background-color: var(--surface-2); }
+
+        .sem-name {
+            flex: 1;
+            min-width: 0;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Rename happens in place. */
+        .sem-name-input {
+            flex: 1;
+            min-width: 0;
+            font-size: 12px !important;
+            font-weight: 700;
+            padding: 4px 6px !important;
+            height: 26px;
+        }
+
+        .sem-count {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .sem-action {
+            width: 24px;
+            height: 24px;
+            flex: none;
+            display: grid;
+            place-items: center;
+            background: none;
+            border: none;
+            border-radius: 6px;
+            color: var(--text-muted);
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.15s, background-color 0.15s, color 0.15s;
+        }
+        .sem-action svg { width: 13px; height: 13px; }
+        .sem-head:hover .sem-action,
+        .sem-head:focus-within .sem-action { opacity: 1; }
+        .sem-action:hover { background-color: var(--surface-3); color: var(--text-main); }
+        .sem-action.danger:hover { background-color: var(--bad-soft); color: var(--delete-btn); }
+
+        /* Touch devices have no hover, so the controls stay visible. */
+        @media (hover: none) {
+            .sem-action { opacity: 1; }
+        }
+
+        .sem-courses { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+
+        .sem-empty {
+            padding: 8px 10px;
+            font-size: 12px;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* --- COURSE ITEMS --- */
+        .nav-course {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            padding: 9px 8px 9px 10px;
+            background: none;
+            border: 1px solid transparent;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-family: inherit;
+            text-align: left;
+            color: var(--text-secondary);
+            transition: background-color 0.15s, color 0.15s;
+        }
+        .nav-course:hover { background-color: var(--surface-2); color: var(--text-main); }
+
+        .nav-course.active {
+            background-color: var(--accent-soft);
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .nav-course-name {
+            flex: 1;
+            min-width: 0;
+            font-size: 13.5px;
+            font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* At-a-glance grade so switching doesn't require opening each course. */
+        .nav-course-grade {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 999px;
+            background-color: var(--surface-3);
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+            flex: none;
+        }
+        .nav-course-grade.grade-good { background-color: var(--good-soft); color: var(--good-color); }
+        .nav-course-grade.grade-ok { background-color: var(--warn-soft); color: var(--warn-color); }
+        .nav-course-grade.grade-bad { background-color: var(--bad-soft); color: var(--bad-color); }
+
+        .nav-course-remove {
+            width: 22px;
+            height: 22px;
+            flex: none;
+            display: grid;
+            place-items: center;
+            background: none;
+            border: none;
+            border-radius: 6px;
+            color: var(--text-muted);
+            font-size: 16px;
+            line-height: 1;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.15s, background-color 0.15s, color 0.15s;
+        }
+        .nav-course:hover .nav-course-remove,
+        .nav-course-remove:focus-visible { opacity: 1; }
+        .nav-course-remove:hover { background-color: var(--bad-soft); color: var(--delete-btn); }
+        @media (hover: none) { .nav-course-remove { opacity: 1; } }
+
+        .nav-add-course {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            width: 100%;
+            padding: 8px 10px;
+            margin-top: 2px;
+            background: none;
+            border: none;
+            border-radius: var(--radius-sm);
+            color: var(--text-muted);
+            font-family: inherit;
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.15s, color 0.15s;
+        }
+        .nav-add-course:hover { background-color: var(--accent-soft); color: var(--accent-color); }
+
+        /* Drawer scrim — inert until the drawer breakpoint. */
+        .nav-scrim { display: none; }
+
+        /* Hamburger — desktop keeps the sidebar visible, so it's hidden there. */
+        .nav-open {
+            display: none;
+            width: 36px;
+            height: 36px;
+            flex: none;
+            place-items: center;
+            background: var(--container-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+        .nav-open svg { width: 18px; height: 18px; }
+        .nav-open:hover { background-color: var(--surface-2); color: var(--text-main); }
+
+        .title-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+        .title-row .eyebrow { margin: 0; }
+
+        /* Semester picker for the open course. */
+        .course-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .course-meta label {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+        .course-meta select {
+            width: auto;
+            min-width: 150px;
+            max-width: 240px;
+            padding: 6px 30px 6px 10px;
+            font-size: 13px;
+            font-weight: 600;
+            background-color: var(--surface-2);
+            border-color: transparent;
+        }
+        .course-meta select:hover { border-color: var(--border-strong); }
+
         .container {
             background-color: var(--container-bg);
             padding: 36px 40px 40px;
-            border-radius: 0 var(--radius-lg) var(--radius-lg) var(--radius-lg);
+            border-radius: var(--radius-lg);
             border: 1px solid var(--border-color);
             box-shadow: var(--shadow);
             width: 100%;
-            max-width: 1200px;
+            min-width: 0;
             transition: background-color 0.25s ease, border-color 0.25s ease;
             margin-bottom: 20px;
             position: relative;
@@ -721,6 +932,9 @@
         .export-option:active { transform: none; }
         .export-icon { font-size: 22px; line-height: 1; }
         .export-label { font-weight: 600; font-size: 13px; }
+        .export-note { font-size: 11px; color: var(--text-muted); }
+        /* The whole-library export spans the grid so it reads as its own action. */
+        .export-option-wide { grid-column: 1 / -1; flex-direction: row; justify-content: center; gap: 10px; padding: 14px; }
 
         .modal-overlay {
             display: none;
@@ -997,26 +1211,60 @@
         }
 
         /* --- TABLET --- */
-        @media (max-width: 1000px) {
+        @media (max-width: 1100px) {
             .footer-row { flex-direction: column-reverse; gap: 20px; }
             .result-box-wrapper, .goal-section-wrapper { flex: auto; width: 100%; }
+        }
+
+        /* --- DRAWER MODE ---
+           The grade table needs ~640px before it starts scrolling sideways.
+           Below roughly this width the sidebar would eat into that, so it
+           slides in over the page from the left instead of sitting beside it. */
+        @media (max-width: 1080px) {
+            .app-shell { grid-template-columns: minmax(0, 1fr); gap: 0; }
+
+            .nav-open { display: grid; }
+
+            .course-nav {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                width: 290px;
+                max-width: 86vw;
+                max-height: none;
+                z-index: 1100;
+                border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+                border-left: none;
+                box-shadow: var(--shadow-lg);
+                transform: translateX(-102%);
+                visibility: hidden;
+                transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.24s;
+            }
+            .course-nav.open { transform: none; visibility: visible; }
+
+            .nav-close { display: block; }
+
+            .nav-scrim {
+                display: block;
+                position: fixed;
+                inset: 0;
+                z-index: 1050;
+                background-color: var(--scrim);
+                backdrop-filter: blur(2px);
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.24s, visibility 0.24s;
+            }
+            .nav-scrim.open { opacity: 1; visibility: visible; }
         }
 
         /* --- MOBILE LAYOUT OPTIMIZATIONS --- */
         @media (max-width: 768px) {
             body { padding: 12px 12px 0; }
 
-            .tabs-wrapper {
-                margin-bottom: 8px;
-                padding-bottom: 4px;
-                gap: 6px;
-            }
-            .course-tab, .add-tab-btn {
-                border-radius: 999px;
-                border: 1px solid var(--border-color);
-                padding: 9px 14px;
-            }
-            .course-tab.active { border-bottom: 1px solid var(--border-color); }
+            .course-meta { flex-wrap: wrap; }
+            .course-meta select { min-width: 0; flex: 1; height: 40px; }
 
             .container {
                 padding: 20px 16px 24px;
@@ -1150,7 +1398,9 @@
         /* --- PRINT / PDF EXPORT STYLES --- */
         @media print {
             @page { margin: 0.75in; size: auto; }
-            .buttons-left, .delete-btn, .header-actions, .buttons-row, .modal-overlay, .stats-btn, .tabs-wrapper, .app-footer, .toast-region, .sync-status, .weight-hint, .grade-meter, .theme-switch { display: none !important; }
+            .buttons-left, .delete-btn, .header-actions, .buttons-row, .modal-overlay, .stats-btn, .app-footer, .toast-region, .sync-status, .weight-hint, .grade-meter, .theme-switch,
+            .course-nav, .nav-scrim, .nav-open, .course-meta { display: none !important; }
+            .app-shell { display: block !important; max-width: 100% !important; }
 
             .goal-section { display: none; }
             .goal-section.goal-calculated { display: block !important; float: left !important; width: 55% !important; border: 1px solid #ddd !important; border-left: 4px solid #333 !important; background-color: #fafafa !important; color: #000 !important; padding: 15px !important; border-radius: 4px !important; box-sizing: border-box !important; margin-top: 0 !important; clear: none !important; }
@@ -1190,19 +1440,42 @@
 </head>
 <body>
 
-<div class="tabs-wrapper" id="tabsWrapper">
-    <div id="tabsList" style="display:contents;">
+<div class="app-shell">
+
+<!-- Scrim sits behind the drawer on narrow screens only. -->
+<div class="nav-scrim" id="navScrim" onclick="window.closeCourseNav()"></div>
+
+<aside class="course-nav" id="courseNav" aria-label="Courses">
+    <div class="nav-head">
+        <h2 class="nav-title">Courses</h2>
+        <button type="button" class="nav-close" onclick="window.closeCourseNav()" aria-label="Close course menu">&times;</button>
     </div>
-    <button type="button" class="add-tab-btn" onclick="window.addCourse()">+ Add Course</button>
-</div>
+
+    <div class="nav-body" id="navBody"></div>
+
+    <div class="nav-foot">
+        <button type="button" class="nav-add-semester" onclick="window.addSemester()">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            Add semester
+        </button>
+    </div>
+</aside>
 
 <div class="container" id="mainAppContainer">
     <div class="header-row">
         <div class="header-titles">
-            <p class="eyebrow">Course Grade Report</p>
+            <div class="title-row">
+                <button type="button" class="nav-open" onclick="window.openCourseNav()" aria-label="Open course menu" aria-controls="courseNav">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </button>
+                <p class="eyebrow">Course Grade Report</p>
+            </div>
             <label class="visually-hidden" for="courseNameInput">Course name</label>
             <input type="text" id="courseNameInput" class="course-name-input" placeholder="Enter Course Name" oninput="window.updatePageTitle(this)">
-            <h2>Weighted grade, GPA and letter, updated as you type.</h2>
+            <div class="course-meta">
+                <label for="courseSemesterSelect">Semester</label>
+                <select id="courseSemesterSelect" onchange="window.moveCourseToSemester(this.value)"></select>
+            </div>
             <div class="report-date" id="reportDate"></div>
         </div>
         <div class="header-actions">
@@ -1311,6 +1584,8 @@
     </div>
 </div>
 
+</div><!-- /.app-shell -->
+
 <div class="app-footer">
     <a href="privacy.html">Privacy Policy</a>
 </div>
@@ -1354,7 +1629,12 @@
             </button>
             <button type="button" class="export-option" onclick="window.downloadCSV()">
                 <span class="export-icon" aria-hidden="true">📊</span>
-                <span class="export-label">Download CSV</span>
+                <span class="export-label">CSV (this course)</span>
+            </button>
+            <button type="button" class="export-option export-option-wide" onclick="window.downloadAllCSV()">
+                <span class="export-icon" aria-hidden="true">🗂️</span>
+                <span class="export-label">CSV — all courses</span>
+                <span class="export-note" id="exportAllNote"></span>
             </button>
         </div>
 
@@ -1479,7 +1759,9 @@
     // --- GLOBAL VARIABLES (Attached to Window for UI scope) ---
     window.currentUser = null;
     window.activeCourseId = 'course-1';
-    window.coursesData = { 'course-1': { courseName: '', targetGrade: '', rows: [] } };
+    window.coursesData = { 'course-1': { courseName: '', targetGrade: '', rows: [], semesterId: 'sem-default' } };
+    window.semesters = { 'sem-default': { name: 'My Courses' } };
+    window.semesterOrder = ['sem-default'];
     window.calcDebounceTimer = null;
     window.sessionMaxCategories = {}; 
     window.sessionMaxPoints = {};
@@ -1691,11 +1973,27 @@
                 window.coursesData['course-1'] = { courseName: '', targetGrade: '', rows: [] };
             }
 
+            // Semesters ride along with the account. Any the merged-in local
+            // courses referred to are preserved so those courses keep their home.
+            const cloudSemesters = parsed.semesters && typeof parsed.semesters === 'object' ? parsed.semesters : {};
+            const keptLocalSemesters = {};
+            Object.values(localOnly).forEach(course => {
+                const semId = course.semesterId;
+                if (semId && !cloudSemesters[semId] && window.semesters[semId]) {
+                    keptLocalSemesters[semId] = window.semesters[semId];
+                }
+            });
+
+            window.semesters = Object.assign({}, cloudSemesters, keptLocalSemesters);
+            window.semesterOrder = (Array.isArray(parsed.semesterOrder) ? parsed.semesterOrder : [])
+                .concat(Object.keys(keptLocalSemesters));
+            ensureSemesters();
+
             window.activeCourseId = parsed.activeCourseId && window.coursesData[parsed.activeCourseId]
                 ? parsed.activeCourseId
                 : Object.keys(window.coursesData)[0];
 
-            window.renderTabs();
+            window.renderCourseNav();
             window.renderCourseUI();
 
             const mergedCount = Object.keys(localOnly).length;
@@ -1718,14 +2016,18 @@
     }
 
     function saveCurrentCourseToState() {
-        if (!window.coursesData[window.activeCourseId]) return;
-        
+        const existing = window.coursesData[window.activeCourseId];
+        if (!existing) return;
+
         window.coursesData[window.activeCourseId] = {
             courseName: document.getElementById('courseNameInput').value,
             targetGrade: document.getElementById('targetGrade').value,
+            // This rebuilds the course from the DOM, so anything not shown in
+            // the table has to be carried across explicitly.
+            semesterId: existing.semesterId,
             rows: []
         };
-        
+
         const rows = document.querySelectorAll('#tableBody tr');
         rows.forEach(row => {
             window.coursesData[window.activeCourseId].rows.push({
@@ -1738,10 +2040,13 @@
     }
 
     function buildPayload() {
+        ensureSemesters();
         return {
             format: 'multi',
             activeCourseId: window.activeCourseId,
-            coursesData: window.coursesData
+            coursesData: window.coursesData,
+            semesters: window.semesters,
+            semesterOrder: window.semesterOrder
         };
     }
 
@@ -1794,78 +2099,419 @@
     window.saveData = function() {
         saveCurrentCourseToState();
         window.persistToStorage();
+        refreshActiveNavItem();
     }
 
-    window.renderTabs = function() {
-        const tabsList = document.getElementById('tabsList');
-        tabsList.innerHTML = '';
-        
-        Object.entries(window.coursesData).forEach(([id, data], index) => {
-            const tab = document.createElement('div');
-            tab.className = 'course-tab' + (id === window.activeCourseId ? ' active' : '');
-            tab.onclick = () => window.switchCourse(id);
-            
-            const title = document.createElement('span');
-            title.textContent = data.courseName.trim() ? data.courseName : `Course ${index + 1}`;
-            tab.appendChild(title);
-            
-            if (Object.keys(window.coursesData).length > 1) {
-                const closeBtn = document.createElement('span');
-                closeBtn.className = 'close-tab';
-                closeBtn.innerHTML = '&times;';
-                closeBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    window.deleteCourse(id);
-                };
-                tab.appendChild(closeBtn);
+    /* =====================================================================
+       SEMESTERS
+       Courses stay in one flat map keyed by id; a semester is a label plus an
+       ordering, and each course points at one by id. Keeping the map flat
+       means older backups (which have no semesters at all) still load — they
+       just get adopted into a default semester on the way in.
+       ===================================================================== */
+
+    function semesterCourseIds(semesterId) {
+        return Object.keys(window.coursesData)
+            .filter(id => window.coursesData[id].semesterId === semesterId);
+    }
+
+    // Guarantees the invariants the UI relies on: at least one semester, every
+    // course attached to a real one, and semesterOrder listing each exactly once.
+    function ensureSemesters() {
+        if (!window.semesters || typeof window.semesters !== 'object') window.semesters = {};
+        if (!Array.isArray(window.semesterOrder)) window.semesterOrder = [];
+
+        // Drop ids in the order list that no longer exist, then append any
+        // semester the order list forgot.
+        window.semesterOrder = window.semesterOrder.filter(
+            (id, i) => window.semesters[id] && window.semesterOrder.indexOf(id) === i
+        );
+        Object.keys(window.semesters).forEach(id => {
+            if (!window.semesterOrder.includes(id)) window.semesterOrder.push(id);
+        });
+
+        if (window.semesterOrder.length === 0) {
+            const id = 'sem-default';
+            window.semesters[id] = { name: 'My Courses' };
+            window.semesterOrder = [id];
+        }
+
+        // Courses from a pre-semester backup, or whose semester was deleted.
+        const fallback = window.semesterOrder[0];
+        Object.values(window.coursesData).forEach(course => {
+            if (!course.semesterId || !window.semesters[course.semesterId]) {
+                course.semesterId = fallback;
             }
-            tabsList.appendChild(tab);
         });
     }
 
-    window.switchCourse = function(id) {
-        if (id === window.activeCourseId) return;
-        clearTimeout(window.calcDebounceTimer); 
-        window.saveData(); 
-        window.activeCourseId = id; 
-        window.persistToStorage(); 
-        window.renderTabs();
-        window.renderCourseUI();
+    function courseLabel(id) {
+        const course = window.coursesData[id];
+        const name = (course && course.courseName || '').trim();
+        if (name) return name;
+        const index = Object.keys(window.coursesData).indexOf(id);
+        return `Course ${index + 1}`;
     }
 
-    window.addCourse = function() {
+    /*
+     * Grade for a stored course, computed from its saved rows rather than the
+     * DOM, so the sidebar can show every course at once and the bulk export
+     * can run over courses that were never opened.
+     */
+    function computeCourseGrade(course) {
+        let weighted = 0, weightUsed = 0, complete = 0, points = 0;
+
+        (course && course.rows || []).forEach(row => {
+            const earnedRaw = (row.earned == null ? '' : String(row.earned)).trim();
+            const maxRaw = (row.max == null ? '' : String(row.max)).trim();
+            const earned = parseScore(earnedRaw);
+            const max = parseScore(maxRaw);
+            const weight = parseFloat(row.weight) || 0;
+
+            if (earnedRaw !== '' && maxRaw !== '') { complete++; points += max; }
+            if (max > 0) {
+                weighted += (earned / max) * weight;
+                weightUsed += weight;
+            }
+        });
+
+        const percent = weightUsed > 0 ? (weighted / weightUsed) * 100 : 0;
+        const info = window.getGradeInfo(percent);
+        return {
+            hasData: complete > 0 && weightUsed > 0,
+            percent: percent,
+            letter: info.letter,
+            gpa: parseFloat(info.gpa),
+            totalWeight: Math.round(weightUsed * 100) / 100,
+            totalPoints: points,
+            categories: complete
+        };
+    }
+
+    function iconButton(className, label, pathMarkup) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = className;
+        btn.title = label;
+        btn.setAttribute('aria-label', label);
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+            'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + pathMarkup + '</svg>';
+        return btn;
+    }
+
+    const ICON_PENCIL = '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>';
+    const ICON_TRASH = '<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>';
+
+    // Full rebuild of the course menu. Cheap enough for a realistic number of
+    // courses; incremental updates go through refreshActiveNavItem().
+    window.renderCourseNav = function() {
+        ensureSemesters();
+        const body = document.getElementById('navBody');
+        if (!body) return;
+        body.innerHTML = '';
+
+        const onlyOneCourse = Object.keys(window.coursesData).length <= 1;
+
+        window.semesterOrder.forEach(semId => {
+            const semester = window.semesters[semId];
+            const courseIds = semesterCourseIds(semId);
+
+            const group = document.createElement('div');
+            group.className = 'sem-group';
+
+            const head = document.createElement('div');
+            head.className = 'sem-head';
+
+            const name = document.createElement('span');
+            name.className = 'sem-name';
+            name.textContent = semester.name;
+            head.appendChild(name);
+
+            const count = document.createElement('span');
+            count.className = 'sem-count';
+            count.textContent = courseIds.length;
+            head.appendChild(count);
+
+            const rename = iconButton('sem-action', 'Rename semester', ICON_PENCIL);
+            rename.addEventListener('click', () => startSemesterRename(semId, name, head));
+            head.appendChild(rename);
+
+            if (window.semesterOrder.length > 1) {
+                const remove = iconButton('sem-action danger', 'Delete semester', ICON_TRASH);
+                remove.addEventListener('click', () => window.deleteSemester(semId));
+                head.appendChild(remove);
+            }
+
+            group.appendChild(head);
+
+            const list = document.createElement('div');
+            list.className = 'sem-courses';
+
+            if (courseIds.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'sem-empty';
+                empty.textContent = 'No courses yet';
+                list.appendChild(empty);
+            }
+
+            courseIds.forEach(courseId => {
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'nav-course' + (courseId === window.activeCourseId ? ' active' : '');
+                item.dataset.courseId = courseId;
+                item.addEventListener('click', () => window.switchCourse(courseId));
+
+                const label = document.createElement('span');
+                label.className = 'nav-course-name';
+                label.textContent = courseLabel(courseId);
+                item.appendChild(label);
+
+                item.appendChild(buildNavGrade(courseId));
+
+                if (!onlyOneCourse) {
+                    const remove = document.createElement('span');
+                    remove.className = 'nav-course-remove';
+                    remove.setAttribute('role', 'button');
+                    remove.setAttribute('tabindex', '0');
+                    remove.setAttribute('aria-label', 'Remove ' + courseLabel(courseId));
+                    remove.textContent = '×';
+                    const doRemove = e => {
+                        e.stopPropagation();
+                        window.deleteCourse(courseId);
+                    };
+                    remove.addEventListener('click', doRemove);
+                    remove.addEventListener('keydown', e => {
+                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); doRemove(e); }
+                    });
+                    item.appendChild(remove);
+                }
+
+                list.appendChild(item);
+            });
+
+            group.appendChild(list);
+
+            const add = document.createElement('button');
+            add.type = 'button';
+            add.className = 'nav-add-course';
+            add.textContent = '+ Add course';
+            add.addEventListener('click', () => window.addCourse(semId));
+            group.appendChild(add);
+
+            body.appendChild(group);
+        });
+
+        renderSemesterSelect();
+    }
+
+    function buildNavGrade(courseId) {
+        const grade = computeCourseGrade(window.coursesData[courseId]);
+        const badge = document.createElement('span');
+        badge.className = 'nav-course-grade' + (grade.hasData ? ' ' + gradeClass(grade.percent) : '');
+        badge.textContent = grade.hasData ? grade.percent.toFixed(0) + '%' : '–';
+        return badge;
+    }
+
+    // Keeps the open course's row in step with typing without rebuilding the
+    // whole menu on every keystroke.
+    function refreshActiveNavItem() {
+        const item = document.querySelector('.nav-course[data-course-id="' + window.activeCourseId + '"]');
+        if (!item) return;
+        const label = item.querySelector('.nav-course-name');
+        if (label) label.textContent = courseLabel(window.activeCourseId);
+        const badge = item.querySelector('.nav-course-grade');
+        if (badge) badge.replaceWith(buildNavGrade(window.activeCourseId));
+    }
+    window.refreshActiveNavItem = refreshActiveNavItem;
+
+    // Backwards-compatible alias: the tab strip this replaced was called from
+    // several places, including the cloud-load path.
+    window.renderTabs = function() { window.renderCourseNav(); };
+
+    function startSemesterRename(semId, nameEl, head) {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'sem-name-input';
+        input.value = window.semesters[semId].name;
+        input.setAttribute('aria-label', 'Semester name');
+
+        let settled = false;
+        const commit = save => {
+            if (settled) return;
+            settled = true;
+            const value = input.value.trim();
+            if (save && value) {
+                window.semesters[semId].name = value;
+                window.persistToStorage();
+            }
+            window.renderCourseNav();
+        };
+
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); commit(true); }
+            else if (e.key === 'Escape') { e.preventDefault(); commit(false); }
+        });
+        input.addEventListener('blur', () => commit(true));
+
+        head.replaceChild(input, nameEl);
+        input.focus();
+        input.select();
+    }
+
+    window.addSemester = function() {
+        ensureSemesters();
+        const id = 'sem-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+        window.semesters[id] = { name: 'New Semester' };
+        window.semesterOrder.push(id);
+        window.persistToStorage();
+        window.renderCourseNav();
+
+        // Drop straight into renaming — a semester called "New Semester" is
+        // useless, and this saves a second click.
+        const groups = document.querySelectorAll('.sem-group');
+        const head = groups[groups.length - 1] && groups[groups.length - 1].querySelector('.sem-head');
+        if (head) startSemesterRename(id, head.querySelector('.sem-name'), head);
+    };
+
+    window.deleteSemester = function(semId) {
+        ensureSemesters();
+        if (window.semesterOrder.length <= 1) {
+            window.toast('You need at least one semester.', 'error');
+            return;
+        }
+
+        const courseIds = semesterCourseIds(semId);
+        const name = window.semesters[semId].name;
+
+        // Never let the last course disappear with its semester.
+        if (courseIds.length >= Object.keys(window.coursesData).length) {
+            window.toast('Move a course elsewhere first — this would delete every course.', 'error');
+            return;
+        }
+
+        const message = courseIds.length
+            ? `Delete "${name}" and its ${courseIds.length} course${courseIds.length > 1 ? 's' : ''}? This can't be undone.`
+            : `Delete "${name}"?`;
+        if (!confirm(message)) return;
+
         clearTimeout(window.calcDebounceTimer);
-        window.saveData(); 
+        courseIds.forEach(id => delete window.coursesData[id]);
+        delete window.semesters[semId];
+        window.semesterOrder = window.semesterOrder.filter(id => id !== semId);
+
+        if (!window.coursesData[window.activeCourseId]) {
+            window.activeCourseId = Object.keys(window.coursesData)[0];
+        }
+
+        ensureSemesters();
+        window.persistToStorage();
+        window.renderCourseNav();
+        window.renderCourseUI();
+        window.toast(`Deleted "${name}".`);
+    };
+
+    // Populates the semester picker shown above the open course.
+    function renderSemesterSelect() {
+        const select = document.getElementById('courseSemesterSelect');
+        if (!select) return;
+        select.innerHTML = '';
+        window.semesterOrder.forEach(id => {
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = window.semesters[id].name;
+            select.appendChild(option);
+        });
+        const course = window.coursesData[window.activeCourseId];
+        if (course) select.value = course.semesterId;
+    }
+
+    window.moveCourseToSemester = function(semesterId) {
+        const course = window.coursesData[window.activeCourseId];
+        if (!course || !window.semesters[semesterId]) return;
+        course.semesterId = semesterId;
+        window.persistToStorage();
+        window.renderCourseNav();
+        window.toast(`Moved to "${window.semesters[semesterId].name}".`);
+    };
+
+    /* --- COURSE NAV DRAWER (narrow screens) --- */
+    let navReturnFocus = null;
+
+    window.openCourseNav = function() {
+        navReturnFocus = document.activeElement;
+        document.getElementById('courseNav').classList.add('open');
+        document.getElementById('navScrim').classList.add('open');
+        const active = document.querySelector('.nav-course.active') || document.querySelector('.nav-course');
+        if (active) active.focus();
+    };
+
+    window.closeCourseNav = function() {
+        document.getElementById('courseNav').classList.remove('open');
+        document.getElementById('navScrim').classList.remove('open');
+        if (navReturnFocus && document.contains(navReturnFocus)) navReturnFocus.focus();
+        navReturnFocus = null;
+    };
+
+    function navIsDrawerOpen() {
+        return document.getElementById('courseNav').classList.contains('open');
+    }
+
+    window.switchCourse = function(id) {
+        if (id === window.activeCourseId) {
+            if (navIsDrawerOpen()) window.closeCourseNav();
+            return;
+        }
+        clearTimeout(window.calcDebounceTimer);
+        window.saveData();
+        window.activeCourseId = id;
+        window.persistToStorage();
+        window.renderCourseNav();
+        window.renderCourseUI();
+        if (navIsDrawerOpen()) window.closeCourseNav();
+    }
+
+    window.addCourse = function(semesterId) {
+        ensureSemesters();
+        clearTimeout(window.calcDebounceTimer);
+        window.saveData();
+
         const newId = generateId();
-        window.coursesData[newId] = { courseName: '', targetGrade: '', rows: [] };
+        const targetSemester = window.semesters[semesterId]
+            ? semesterId
+            : (window.coursesData[window.activeCourseId] || {}).semesterId || window.semesterOrder[0];
+
+        window.coursesData[newId] = { courseName: '', targetGrade: '', rows: [], semesterId: targetSemester };
         window.activeCourseId = newId;
-        
+
         document.getElementById('goalSectionWrapper').classList.remove('visible-in-export');
         document.getElementById('goalResult').innerHTML = '';
-        
-        window.persistToStorage(); 
-        window.renderTabs();
-        window.renderCourseUI();
 
-        if(window.trackCourseAdded) window.trackCourseAdded(1); 
+        window.persistToStorage();
+        window.renderCourseNav();
+        window.renderCourseUI();
+        if (navIsDrawerOpen()) window.closeCourseNav();
+
+        document.getElementById('courseNameInput').focus();
+        if(window.trackCourseAdded) window.trackCourseAdded(1);
     }
 
     window.deleteCourse = function(id) {
         if (Object.keys(window.coursesData).length <= 1) return;
-        if (confirm('Are you sure you want to remove this course?')) {
+        if (confirm(`Remove "${courseLabel(id)}"? This can't be undone.`)) {
             clearTimeout(window.calcDebounceTimer);
             delete window.coursesData[id];
             if (window.activeCourseId === id) {
                 window.activeCourseId = Object.keys(window.coursesData)[0];
             }
             window.persistToStorage();
-            window.renderTabs();
+            window.renderCourseNav();
             window.renderCourseUI();
         }
     }
 
     window.renderCourseUI = function() {
         const data = window.coursesData[window.activeCourseId];
+        renderSemesterSelect();
         document.getElementById('courseNameInput').value = data.courseName || '';
         document.getElementById('targetGrade').value = data.targetGrade || '';
         document.getElementById('goalResult').innerHTML = '';
@@ -1990,8 +2636,10 @@
     window.updatePageTitle = function(input) {
         const val = input.value.trim();
         document.title = val ? val : "Grade Calculator";
-        window.coursesData[window.activeCourseId].courseName = val; 
-        window.renderTabs(); 
+        window.coursesData[window.activeCourseId].courseName = val;
+        // Update just this course's row — rebuilding the whole menu on every
+        // keystroke would tear down the node the user is typing next to.
+        refreshActiveNavItem();
         window.saveData();
     }
 
@@ -2272,9 +2920,13 @@
     window.clearCourse = function() {
         if(confirm("Are you sure you want to clear this course?")) {
             clearTimeout(window.calcDebounceTimer);
-            window.coursesData[window.activeCourseId] = { courseName: '', targetGrade: '', rows: [] };
+            window.coursesData[window.activeCourseId] = {
+                courseName: '', targetGrade: '', rows: [],
+                // Clearing empties the course, it doesn't move it.
+                semesterId: window.coursesData[window.activeCourseId].semesterId
+            };
             window.persistToStorage();
-            window.renderTabs();
+            window.renderCourseNav();
             window.renderCourseUI();
         }
     }
@@ -2299,6 +2951,16 @@
             const safeName = currentCourse.replace(/[^a-z0-9_\-]/gi, '_');
             nameInput.value = safeName;
         }
+        // Say up front how much the all-courses export will actually cover.
+        ensureSemesters();
+        const courses = Object.keys(window.coursesData).length;
+        const terms = window.semesterOrder.length;
+        const note = document.getElementById('exportAllNote');
+        if (note) {
+            note.textContent = `${courses} course${courses === 1 ? '' : 's'} · ` +
+                `${terms} semester${terms === 1 ? '' : 's'}`;
+        }
+
         document.getElementById('shareModal').style.display = 'flex';
         onModalOpened('shareModal');
     };
@@ -2348,6 +3010,9 @@
         if (open.length) {
             event.preventDefault();
             MODAL_CLOSERS[open[open.length - 1]]();
+        } else if (document.getElementById('courseNav').classList.contains('open')) {
+            event.preventDefault();
+            window.closeCourseNav();
         }
     });
 
@@ -2733,6 +3398,108 @@
         window.toast('CSV downloaded.', 'success');
     };
 
+    /*
+     * Every course, every semester, in one spreadsheet: the category rows, then
+     * a per-course summary, then a per-semester roll-up. Reads stored state
+     * rather than the DOM so courses that were never opened are included.
+     */
+    window.downloadAllCSV = function() {
+        saveCurrentCourseToState();
+        ensureSemesters();
+
+        const lines = [];
+        const push = cells => lines.push(cells.map(csvCell).join(','));
+
+        push(['All Courses Export']);
+        push(['Date', new Date().toLocaleDateString()]);
+        push(['Semesters', window.semesterOrder.length]);
+        push(['Courses', Object.keys(window.coursesData).length]);
+        lines.push('');
+
+        push(['Semester', 'Course', 'Category', 'Points Earned', 'Total Points', 'Current %', 'Weight %']);
+
+        const courseSummaries = [];
+
+        window.semesterOrder.forEach(semId => {
+            const semName = window.semesters[semId].name;
+
+            semesterCourseIds(semId).forEach(courseId => {
+                const course = window.coursesData[courseId];
+                const name = courseLabel(courseId);
+                const grade = computeCourseGrade(course);
+                courseSummaries.push({ semId: semId, semName: semName, name: name, grade: grade });
+
+                const rows = (course.rows || []).filter(r =>
+                    (r.name || '').trim() || (r.earned || '').toString().trim() ||
+                    (r.max || '').toString().trim() || (r.weight || '').toString().trim()
+                );
+
+                if (rows.length === 0) {
+                    push([semName, name, '(no categories)', '', '', '', '']);
+                    return;
+                }
+
+                rows.forEach(r => {
+                    const earnedRaw = (r.earned == null ? '' : String(r.earned)).trim();
+                    const maxRaw = (r.max == null ? '' : String(r.max)).trim();
+                    const max = parseScore(maxRaw);
+                    const earned = parseScore(earnedRaw);
+                    push([
+                        semName,
+                        name,
+                        (r.name || '').trim() || 'Untitled category',
+                        earnedRaw ? earned : '',
+                        maxRaw ? max : '',
+                        max > 0 ? ((earned / max) * 100).toFixed(2) : '',
+                        (r.weight || '').toString().trim()
+                    ]);
+                });
+            });
+        });
+
+        lines.push('');
+        push(['Course Summary']);
+        push(['Semester', 'Course', 'Final %', 'Letter', 'GPA', 'Total Weight %', 'Categories Scored']);
+        courseSummaries.forEach(c => {
+            push([
+                c.semName, c.name,
+                c.grade.hasData ? c.grade.percent.toFixed(2) : '',
+                c.grade.hasData ? c.grade.letter : '',
+                c.grade.hasData ? c.grade.gpa.toFixed(1) : '',
+                c.grade.totalWeight,
+                c.grade.categories
+            ]);
+        });
+
+        lines.push('');
+        push(['Semester Summary']);
+        push(['Semester', 'Courses', 'Courses Graded', 'Average %', 'Average GPA']);
+        window.semesterOrder.forEach(semId => {
+            const inSem = courseSummaries.filter(c => c.semId === semId);
+            const graded = inSem.filter(c => c.grade.hasData);
+            const avgPercent = graded.length
+                ? graded.reduce((sum, c) => sum + c.grade.percent, 0) / graded.length : null;
+            const avgGpa = graded.length
+                ? graded.reduce((sum, c) => sum + c.grade.gpa, 0) / graded.length : null;
+            push([
+                window.semesters[semId].name,
+                inSem.length,
+                graded.length,
+                avgPercent === null ? '' : avgPercent.toFixed(2),
+                avgGpa === null ? '' : avgGpa.toFixed(2)
+            ]);
+        });
+
+        const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+        const base = (document.getElementById('exportFileName').value.trim() || 'Grade_Report')
+            .replace(/\.csv$/i, '');
+        downloadBlob(blob, base + '_all_courses.csv');
+
+        if (window.trackExport) window.trackExport();
+        window.closeShareModal();
+        window.toast(`Exported ${courseSummaries.length} course${courseSummaries.length === 1 ? '' : 's'} to CSV.`, 'success');
+    };
+
     window.downloadImage = async function() {
         const fileName = getCustomFileName('png');
         window.closeShareModal();
@@ -2798,6 +3565,7 @@
                             clean[id] = {
                                 courseName: typeof course.courseName === 'string' ? course.courseName : '',
                                 targetGrade: course.targetGrade != null ? String(course.targetGrade) : '',
+                                semesterId: typeof course.semesterId === 'string' ? course.semesterId : null,
                                 rows: Array.isArray(course.rows) ? course.rows.map(r => ({
                                     name: r && r.name != null ? String(r.name) : '',
                                     earned: r && r.earned != null ? String(r.earned) : '',
@@ -2807,6 +3575,28 @@
                             };
                         });
                         if (Object.keys(clean).length === 0) throw new Error('That backup contains no courses.');
+
+                        // Bring the backup's semesters in alongside the current
+                        // ones. Ids collide only if it's the same semester.
+                        if (data.semesters && typeof data.semesters === 'object') {
+                            Object.entries(data.semesters).forEach(([id, sem]) => {
+                                if (!sem || typeof sem !== 'object') return;
+                                if (!window.semesters[id]) {
+                                    window.semesters[id] = { name: typeof sem.name === 'string' && sem.name.trim() ? sem.name : 'Imported' };
+                                    window.semesterOrder.push(id);
+                                }
+                            });
+                        }
+
+                        // Courses whose semester didn't survive land in one
+                        // clearly-labelled bucket rather than a default.
+                        const orphans = Object.values(clean).filter(c => !c.semesterId || !window.semesters[c.semesterId]);
+                        if (orphans.length) {
+                            const importId = 'sem-import-' + Date.now();
+                            window.semesters[importId] = { name: 'Imported' };
+                            window.semesterOrder.push(importId);
+                            orphans.forEach(c => { c.semesterId = importId; });
+                        }
 
                         Object.assign(window.coursesData, clean);
                         window.activeCourseId = clean[data.activeCourseId]
@@ -2913,6 +3703,10 @@
                     if (Object.keys(window.coursesData).length === 0) {
                         window.coursesData['course-1'] = { courseName: '', targetGrade: '', rows: [] };
                     }
+                    // Absent in saves from before semesters existed;
+                    // ensureSemesters() adopts those courses into a default one.
+                    window.semesters = parsed.semesters && typeof parsed.semesters === 'object' ? parsed.semesters : {};
+                    window.semesterOrder = Array.isArray(parsed.semesterOrder) ? parsed.semesterOrder : [];
                 }
             } catch (e) { console.error("Error loading local multi-course data", e); }
         } else if (savedSingle) {
@@ -2922,10 +3716,11 @@
         } else {
             if(window.trackCourseAdded) window.trackCourseAdded(1);
         }
-        
+
+        ensureSemesters();
         if (!window.coursesData[window.activeCourseId]) window.activeCourseId = Object.keys(window.coursesData)[0];
 
-        window.renderTabs();
+        window.renderCourseNav();
         window.renderCourseUI();
     }
 
