@@ -1061,7 +1061,27 @@
             margin-bottom: 20px;
         }
         .export-semester select { background-color: var(--modal-bg); font-weight: 600; }
-        .export-semester .export-note { margin: 8px 2px 12px; }
+        .export-semester .export-note { margin: 8px 2px 10px; }
+
+        .export-check {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            margin: 0 2px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+        .export-check input {
+            width: 16px;
+            height: 16px;
+            flex: none;
+            margin: 0;
+            accent-color: var(--accent-color);
+            cursor: pointer;
+        }
+        .export-check:hover { color: var(--text-main); }
         .export-semester-actions {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -1779,6 +1799,10 @@
             <label class="visually-hidden" for="exportSemesterSelect">Semester to export</label>
             <select id="exportSemesterSelect" onchange="window.updateSemesterExportNote()"></select>
             <p class="export-note" id="exportSemesterNote"></p>
+            <label class="export-check">
+                <input type="checkbox" id="exportSemesterDetail" onchange="window.updateSemesterExportNote()">
+                <span>Include each course's category breakdown</span>
+            </label>
             <div class="export-semester-actions">
                 <button type="button" class="export-option" onclick="window.emailSemesterReport()">
                     <span class="export-icon" aria-hidden="true">📧</span>
@@ -3695,6 +3719,39 @@
         };
     }
 
+    // One category, formatted the same way wherever it appears.
+    function formatCategoryLine(row, indent) {
+        const score = row.max !== '' ? `${row.earned || 0}/${row.max}` : '—';
+        const pct = row.percent !== null ? ` (${row.percent.toFixed(2)}%)` : '';
+        const weight = row.weight !== '' ? ` · weight ${row.weight}%` : '';
+        return `${indent || ''}• ${row.name}: ${score}${pct}${weight}`;
+    }
+
+    /*
+     * The same row shape collectReport() builds from the DOM, but read from
+     * stored state so it works for courses that aren't currently open.
+     */
+    function reportRows(course) {
+        return (course && course.rows || [])
+            .filter(r =>
+                (r.name || '').trim() || (r.earned || '').toString().trim() ||
+                (r.max || '').toString().trim() || (r.weight || '').toString().trim()
+            )
+            .map(r => {
+                const earnedRaw = (r.earned == null ? '' : String(r.earned)).trim();
+                const maxRaw = (r.max == null ? '' : String(r.max)).trim();
+                const earned = parseScore(earnedRaw);
+                const max = parseScore(maxRaw);
+                return {
+                    name: (r.name || '').trim() || 'Untitled category',
+                    earned: earnedRaw ? earned : '',
+                    max: maxRaw ? max : '',
+                    percent: max > 0 ? (earned / max) * 100 : null,
+                    weight: (r.weight == null ? '' : String(r.weight)).trim()
+                };
+            });
+    }
+
     function buildReportText() {
         const r = collectReport();
         const lines = [];
@@ -3705,12 +3762,7 @@
         if (r.rows.length === 0) {
             lines.push('(No categories entered yet.)');
         } else {
-            r.rows.forEach(row => {
-                const score = row.max !== '' ? `${row.earned || 0}/${row.max}` : '—';
-                const pct = row.percent !== null ? ` (${row.percent.toFixed(2)}%)` : '';
-                const weight = row.weight !== '' ? ` · weight ${row.weight}%` : '';
-                lines.push(`• ${row.name}: ${score}${pct}${weight}`);
-            });
+            r.rows.forEach(row => lines.push(formatCategoryLine(row)));
         }
 
         lines.push('');
@@ -3846,6 +3898,7 @@
             id: courseId,
             name: courseLabel(courseId),
             course: window.coursesData[courseId],
+            rows: reportRows(window.coursesData[courseId]),
             grade: computeCourseGrade(window.coursesData[courseId])
         }));
 
@@ -3863,7 +3916,12 @@
         };
     }
 
-    function semesterReportText(data) {
+    /*
+     * Summary form is one line per course. With detail on, each course also
+     * lists its categories, which is the same content the CSV carries but in a
+     * shape you can paste into an email.
+     */
+    function semesterReportText(data, includeDetail) {
         const lines = [];
         lines.push(`${data.name} — semester grade report`);
         lines.push(data.date);
@@ -3871,20 +3929,40 @@
 
         if (data.courses.length === 0) {
             lines.push('(No courses in this semester yet.)');
-        } else {
-            data.courses.forEach(c => {
-                lines.push(c.grade.hasData
-                    ? `• ${c.name}: ${c.grade.percent.toFixed(2)}%  (${c.grade.letter}, GPA ${c.grade.gpa.toFixed(1)})`
-                    : `• ${c.name}: not graded yet`);
-            });
+            return lines.join('\n');
+        }
 
-            lines.push('');
-            lines.push(`Courses: ${data.courses.length} (${data.gradedCount} graded)`);
-            if (data.averagePercent !== null) {
-                lines.push(`Average grade: ${data.averagePercent.toFixed(2)}%  |  Average GPA: ${data.averageGpa.toFixed(2)}`);
+        data.courses.forEach(c => {
+            const result = c.grade.hasData
+                ? `${c.grade.percent.toFixed(2)}%  (${c.grade.letter}, GPA ${c.grade.gpa.toFixed(1)})`
+                : 'not graded yet';
+
+            if (!includeDetail) {
+                lines.push(`• ${c.name}: ${result}`);
+                return;
             }
+
+            lines.push(`${c.name} — ${result}`);
+            if (c.rows.length === 0) {
+                lines.push('    (no categories yet)');
+            } else {
+                c.rows.forEach(row => lines.push(formatCategoryLine(row, '    ')));
+                lines.push(`    Total weight: ${c.grade.totalWeight}%`);
+            }
+            lines.push('');
+        });
+
+        if (!includeDetail) lines.push('');
+        lines.push(`Courses: ${data.courses.length} (${data.gradedCount} graded)`);
+        if (data.averagePercent !== null) {
+            lines.push(`Average grade: ${data.averagePercent.toFixed(2)}%  |  Average GPA: ${data.averageGpa.toFixed(2)}`);
         }
         return lines.join('\n');
+    }
+
+    function semesterDetailWanted() {
+        const box = document.getElementById('exportSemesterDetail');
+        return !!(box && box.checked);
     }
 
     // Tells the user what the chosen semester actually contains before they
@@ -3908,8 +3986,21 @@
         const average = graded.length
             ? (graded.reduce((sum, g) => sum + g.percent, 0) / graded.length).toFixed(2) + '% average'
             : 'no grades yet';
-        note.textContent = `${courses.length} course${courses.length === 1 ? '' : 's'} · ` +
+        let text = `${courses.length} course${courses.length === 1 ? '' : 's'} · ` +
             `${graded.length} graded · ${average}`;
+
+        // Warn before they send rather than after: a detailed report can exceed
+        // what a mailto: URL carries, and mail apps truncate silently.
+        if (semesterDetailWanted()) {
+            const data = collectSemester(select.value);
+            const body = semesterReportText(data, true);
+            const categories = data.courses.reduce((sum, c) => sum + c.rows.length, 0);
+            text += ` · ${categories} categor${categories === 1 ? 'y' : 'ies'}`;
+            if (encodeURIComponent(body).length > 1700) {
+                text += ' — long for email; Copy Text keeps it whole';
+            }
+        }
+        note.textContent = text;
     };
 
     // Reads the semester chosen in the Share / Export dialog.
@@ -3926,13 +4017,14 @@
         const average = data.averagePercent === null
             ? 'no grades yet'
             : `avg ${data.averagePercent.toFixed(2)}%`;
-        openMailReport(`Grade report: ${data.name} (${average})`, semesterReportText(data));
+        openMailReport(`Grade report: ${data.name} (${average})`,
+            semesterReportText(data, semesterDetailWanted()));
     };
 
     window.copySemesterReport = function() {
         const data = selectedExportSemester();
         if (!data) return;
-        return copyText(semesterReportText(data));
+        return copyText(semesterReportText(data, semesterDetailWanted()));
     };
 
     window.downloadSemesterCSV = function() {
@@ -3950,30 +4042,18 @@
         push(['Course', 'Category', 'Points Earned', 'Total Points', 'Current %', 'Weight %']);
 
         data.courses.forEach(c => {
-            const rows = (c.course.rows || []).filter(r =>
-                (r.name || '').trim() || (r.earned || '').toString().trim() ||
-                (r.max || '').toString().trim() || (r.weight || '').toString().trim()
-            );
-
-            if (rows.length === 0) {
+            if (c.rows.length === 0) {
                 push([c.name, '(no categories)', '', '', '', '']);
                 return;
             }
-
-            rows.forEach(r => {
-                const earnedRaw = (r.earned == null ? '' : String(r.earned)).trim();
-                const maxRaw = (r.max == null ? '' : String(r.max)).trim();
-                const max = parseScore(maxRaw);
-                const earned = parseScore(earnedRaw);
-                push([
-                    c.name,
-                    (r.name || '').trim() || 'Untitled category',
-                    earnedRaw ? earned : '',
-                    maxRaw ? max : '',
-                    max > 0 ? ((earned / max) * 100).toFixed(2) : '',
-                    (r.weight || '').toString().trim()
-                ]);
-            });
+            c.rows.forEach(row => push([
+                c.name,
+                row.name,
+                row.earned,
+                row.max,
+                row.percent === null ? '' : row.percent.toFixed(2),
+                row.weight
+            ]));
         });
 
         lines.push('');
