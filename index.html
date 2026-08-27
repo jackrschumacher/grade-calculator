@@ -1031,6 +1031,47 @@
         /* The whole-library export spans the grid so it reads as its own action. */
         .export-option-wide { grid-column: 1 / -1; flex-direction: row; justify-content: center; gap: 10px; padding: 14px; }
 
+        /* --- EXPORT SECTIONS --- */
+        .export-section-title {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin: 0 0 10px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+        .export-section-title span {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0;
+            text-transform: none;
+            color: var(--text-secondary);
+        }
+        .export-grid + .export-section-title,
+        .export-semester + .export-section-title { margin-top: 22px; }
+
+        .export-semester {
+            padding: 14px;
+            border: 1px solid var(--modal-border);
+            border-radius: var(--radius);
+            background-color: var(--card-bg);
+            margin-bottom: 20px;
+        }
+        .export-semester select { background-color: var(--modal-bg); font-weight: 600; }
+        .export-semester .export-note { margin: 8px 2px 12px; }
+        .export-semester-actions {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        .export-semester-actions .export-option {
+            padding: 14px 8px;
+            background-color: var(--modal-bg);
+        }
+
         .modal-overlay {
             display: none;
             position: fixed;
@@ -1709,15 +1750,8 @@
             <input type="text" id="exportFileName" placeholder="grade_report">
         </div>
         
+        <p class="export-section-title">This course<span id="exportCourseNote"></span></p>
         <div class="export-grid">
-            <button type="button" class="export-option" onclick="window.downloadConfig()">
-                <span class="export-icon" style="color: #3498db;" aria-hidden="true">💾</span>
-                <span class="export-label">Save Backup</span>
-            </button>
-            <button type="button" class="export-option" onclick="window.triggerRestore()">
-                <span class="export-icon" style="color: #e67e22;" aria-hidden="true">📂</span>
-                <span class="export-label">Load Backup</span>
-            </button>
             <button type="button" class="export-option" onclick="window.recordExportStat()">
                 <span class="export-icon" aria-hidden="true">📄</span>
                 <span class="export-label">Save as PDF</span>
@@ -1736,7 +1770,40 @@
             </button>
             <button type="button" class="export-option" onclick="window.downloadCSV()">
                 <span class="export-icon" aria-hidden="true">📊</span>
-                <span class="export-label">CSV (this course)</span>
+                <span class="export-label">Download CSV</span>
+            </button>
+        </div>
+
+        <p class="export-section-title">One semester</p>
+        <div class="export-semester">
+            <label class="visually-hidden" for="exportSemesterSelect">Semester to export</label>
+            <select id="exportSemesterSelect" onchange="window.updateSemesterExportNote()"></select>
+            <p class="export-note" id="exportSemesterNote"></p>
+            <div class="export-semester-actions">
+                <button type="button" class="export-option" onclick="window.emailSemesterReport()">
+                    <span class="export-icon" aria-hidden="true">📧</span>
+                    <span class="export-label">Email Report</span>
+                </button>
+                <button type="button" class="export-option" onclick="window.copySemesterReport()">
+                    <span class="export-icon" aria-hidden="true">📋</span>
+                    <span class="export-label">Copy Text</span>
+                </button>
+                <button type="button" class="export-option" onclick="window.downloadSemesterCSV()">
+                    <span class="export-icon" aria-hidden="true">📊</span>
+                    <span class="export-label">Download CSV</span>
+                </button>
+            </div>
+        </div>
+
+        <p class="export-section-title">Everything</p>
+        <div class="export-grid">
+            <button type="button" class="export-option" onclick="window.downloadConfig()">
+                <span class="export-icon" style="color: #3498db;" aria-hidden="true">💾</span>
+                <span class="export-label">Save Backup</span>
+            </button>
+            <button type="button" class="export-option" onclick="window.triggerRestore()">
+                <span class="export-icon" style="color: #e67e22;" aria-hidden="true">📂</span>
+                <span class="export-label">Load Backup</span>
             </button>
             <button type="button" class="export-option export-option-wide" onclick="window.downloadAllCSV()">
                 <span class="export-icon" aria-hidden="true">🗂️</span>
@@ -3293,6 +3360,24 @@
                 `${terms} semester${terms === 1 ? '' : 's'}`;
         }
 
+        const courseNote = document.getElementById('exportCourseNote');
+        if (courseNote) courseNote.textContent = courseLabel(window.activeCourseId);
+
+        // Default the semester picker to the one the open course sits in.
+        const select = document.getElementById('exportSemesterSelect');
+        if (select) {
+            select.innerHTML = '';
+            window.semesterOrder.forEach(id => {
+                const option = document.createElement('option');
+                option.value = id;
+                option.textContent = window.semesters[id].name;
+                select.appendChild(option);
+            });
+            const active = window.coursesData[window.activeCourseId];
+            if (active && window.semesters[active.semesterId]) select.value = active.semesterId;
+            window.updateSemesterExportNote();
+        }
+
         document.getElementById('shareModal').style.display = 'flex';
         onModalOpened('shareModal');
     };
@@ -3640,8 +3725,7 @@
         return lines.join('\n');
     }
 
-    window.copyToClipboard = async function() {
-        const text = buildReportText();
+    async function copyText(text) {
         try {
             if (navigator.clipboard && window.isSecureContext) {
                 await navigator.clipboard.writeText(text);
@@ -3666,22 +3750,33 @@
             window.toast('Could not copy automatically — check the console for the report text.', 'error');
             console.log(text);
         }
-    };
+    }
 
-    window.emailReport = function() {
-        const r = collectReport();
-        const subject = `Grade report: ${r.courseName} (${r.finalGrade})`;
-        const body = buildReportText();
+    // Hands a report to the mail client. Long reports are warned about rather
+    // than blocked: mailto: URLs get truncated by some clients past ~2000 chars.
+    function openMailReport(subject, body) {
         const href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-
         if (href.length > 1800) {
-            // Very long mailto URLs get truncated by some mail clients.
             window.toast('This report is long — some email apps may cut it off.', 'error');
         }
         if (window.trackExport) window.trackExport();
         window.closeShareModal();
         window.location.href = href;
+    }
+
+    window.copyToClipboard = function() {
+        return copyText(buildReportText());
     };
+
+    window.emailReport = function() {
+        const r = collectReport();
+        openMailReport(`Grade report: ${r.courseName} (${r.finalGrade})`, buildReportText());
+    };
+
+    // "Fall 2026" -> "Fall_2026", safe for a download filename.
+    function safeFileFragment(text) {
+        return (text || '').trim().replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '') || 'semester';
+    }
 
     function csvCell(value) {
         const s = value === null || value === undefined ? '' : String(value);
@@ -3731,6 +3826,189 @@
         if (window.trackExport) window.trackExport();
         window.closeShareModal();
         window.toast('CSV downloaded.', 'success');
+    };
+
+    /* --- SEMESTER EXPORTS --- */
+
+    /*
+     * Gathers one semester from stored state. The open course is flushed first
+     * so edits made since the last render are included, and courses that were
+     * never opened this session are picked up too.
+     */
+    function collectSemester(semesterId) {
+        saveCurrentCourseToState();
+        ensureSemesters();
+
+        const semester = window.semesters[semesterId];
+        if (!semester) return null;
+
+        const courses = semesterCourseIds(semesterId).map(courseId => ({
+            id: courseId,
+            name: courseLabel(courseId),
+            course: window.coursesData[courseId],
+            grade: computeCourseGrade(window.coursesData[courseId])
+        }));
+
+        const graded = courses.filter(c => c.grade.hasData);
+        return {
+            id: semesterId,
+            name: semester.name,
+            courses: courses,
+            gradedCount: graded.length,
+            averagePercent: graded.length
+                ? graded.reduce((sum, c) => sum + c.grade.percent, 0) / graded.length : null,
+            averageGpa: graded.length
+                ? graded.reduce((sum, c) => sum + c.grade.gpa, 0) / graded.length : null,
+            date: new Date().toLocaleDateString()
+        };
+    }
+
+    function semesterReportText(data) {
+        const lines = [];
+        lines.push(`${data.name} — semester grade report`);
+        lines.push(data.date);
+        lines.push('');
+
+        if (data.courses.length === 0) {
+            lines.push('(No courses in this semester yet.)');
+        } else {
+            data.courses.forEach(c => {
+                lines.push(c.grade.hasData
+                    ? `• ${c.name}: ${c.grade.percent.toFixed(2)}%  (${c.grade.letter}, GPA ${c.grade.gpa.toFixed(1)})`
+                    : `• ${c.name}: not graded yet`);
+            });
+
+            lines.push('');
+            lines.push(`Courses: ${data.courses.length} (${data.gradedCount} graded)`);
+            if (data.averagePercent !== null) {
+                lines.push(`Average grade: ${data.averagePercent.toFixed(2)}%  |  Average GPA: ${data.averageGpa.toFixed(2)}`);
+            }
+        }
+        return lines.join('\n');
+    }
+
+    // Tells the user what the chosen semester actually contains before they
+    // commit to an export.
+    window.updateSemesterExportNote = function() {
+        const note = document.getElementById('exportSemesterNote');
+        const select = document.getElementById('exportSemesterSelect');
+        if (!note || !select) return;
+
+        const semester = window.semesters[select.value];
+        if (!semester) { note.textContent = ''; return; }
+
+        const courses = semesterCourseIds(select.value)
+            .map(id => computeCourseGrade(window.coursesData[id]));
+        const graded = courses.filter(g => g.hasData);
+
+        if (courses.length === 0) {
+            note.textContent = 'No courses in this semester yet.';
+            return;
+        }
+        const average = graded.length
+            ? (graded.reduce((sum, g) => sum + g.percent, 0) / graded.length).toFixed(2) + '% average'
+            : 'no grades yet';
+        note.textContent = `${courses.length} course${courses.length === 1 ? '' : 's'} · ` +
+            `${graded.length} graded · ${average}`;
+    };
+
+    // Reads the semester chosen in the Share / Export dialog.
+    function selectedExportSemester() {
+        const select = document.getElementById('exportSemesterSelect');
+        const data = select ? collectSemester(select.value) : null;
+        if (!data) window.toast('Pick a semester to export first.', 'error');
+        return data;
+    }
+
+    window.emailSemesterReport = function() {
+        const data = selectedExportSemester();
+        if (!data) return;
+        const average = data.averagePercent === null
+            ? 'no grades yet'
+            : `avg ${data.averagePercent.toFixed(2)}%`;
+        openMailReport(`Grade report: ${data.name} (${average})`, semesterReportText(data));
+    };
+
+    window.copySemesterReport = function() {
+        const data = selectedExportSemester();
+        if (!data) return;
+        return copyText(semesterReportText(data));
+    };
+
+    window.downloadSemesterCSV = function() {
+        const data = selectedExportSemester();
+        if (!data) return;
+
+        const lines = [];
+        const push = cells => lines.push(cells.map(csvCell).join(','));
+
+        push(['Semester', data.name]);
+        push(['Date', data.date]);
+        push(['Courses', data.courses.length]);
+        lines.push('');
+
+        push(['Course', 'Category', 'Points Earned', 'Total Points', 'Current %', 'Weight %']);
+
+        data.courses.forEach(c => {
+            const rows = (c.course.rows || []).filter(r =>
+                (r.name || '').trim() || (r.earned || '').toString().trim() ||
+                (r.max || '').toString().trim() || (r.weight || '').toString().trim()
+            );
+
+            if (rows.length === 0) {
+                push([c.name, '(no categories)', '', '', '', '']);
+                return;
+            }
+
+            rows.forEach(r => {
+                const earnedRaw = (r.earned == null ? '' : String(r.earned)).trim();
+                const maxRaw = (r.max == null ? '' : String(r.max)).trim();
+                const max = parseScore(maxRaw);
+                const earned = parseScore(earnedRaw);
+                push([
+                    c.name,
+                    (r.name || '').trim() || 'Untitled category',
+                    earnedRaw ? earned : '',
+                    maxRaw ? max : '',
+                    max > 0 ? ((earned / max) * 100).toFixed(2) : '',
+                    (r.weight || '').toString().trim()
+                ]);
+            });
+        });
+
+        lines.push('');
+        push(['Course Summary']);
+        push(['Course', 'Final %', 'Letter', 'GPA', 'Total Weight %', 'Categories Scored']);
+        data.courses.forEach(c => {
+            push([
+                c.name,
+                c.grade.hasData ? c.grade.percent.toFixed(2) : '',
+                c.grade.hasData ? c.grade.letter : '',
+                c.grade.hasData ? c.grade.gpa.toFixed(1) : '',
+                c.grade.totalWeight,
+                c.grade.categories
+            ]);
+        });
+
+        lines.push('');
+        push(['Semester Total']);
+        push(['Courses', 'Courses Graded', 'Average %', 'Average GPA']);
+        push([
+            data.courses.length,
+            data.gradedCount,
+            data.averagePercent === null ? '' : data.averagePercent.toFixed(2),
+            data.averageGpa === null ? '' : data.averageGpa.toFixed(2)
+        ]);
+
+        // Leading BOM so Excel reads accented names correctly.
+        const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+        const base = (document.getElementById('exportFileName').value.trim() || 'Grade_Report')
+            .replace(/\.csv$/i, '');
+        downloadBlob(blob, base + '_' + safeFileFragment(data.name) + '.csv');
+
+        if (window.trackExport) window.trackExport();
+        window.closeShareModal();
+        window.toast(`Exported ${data.courses.length} course${data.courses.length === 1 ? '' : 's'} from ${data.name}.`, 'success');
     };
 
     /*
